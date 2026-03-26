@@ -50,7 +50,26 @@
         }
       ],
       "published": true
+    },
+    {
+      "id": "evt_17745374098034vudndj8d",
+      "title": "test2",
+      "date_from": "2026-03-26",
+      "date_to": "2026-03-28",
+      "additionalInfo": "hjgfdhgfdhgfdhgfhg",
+      "location": "",
+      "description": "",
+      "status": "draft",
+      "max_participants": null,
+      "created_at": "2026-03-26T15:03:29.803Z",
+      "fields": [
+        {
+          "label": "test",
+          "type": "text"
+        }
+      ],
+      "published": true
     }
   ],
-  "updated_at": "2026-03-26T15:03:01.418Z"
+  "updated_at": "2026-03-26T15:03:30.088Z"
 }
