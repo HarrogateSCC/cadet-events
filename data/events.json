@@ -1,6 +1,19 @@
 {
   "events": [
     {
+      "id": "evt_1774532819959ydkibcoue",
+      "title": "test",
+      "date_from": "2026-03-27",
+      "date_to": "2026-03-27",
+      "location": "",
+      "description": "",
+      "status": "draft",
+      "max_participants": null,
+      "created_at": "2026-03-26T13:46:59.959Z",
+      "fields": [],
+      "published": true
+    },
+    {
       "id": "evt_1774537030191avh0gn9qi",
       "title": "test sailing event",
       "date_from": "2026-04-08",
@@ -60,21 +73,7 @@
       "created_at": "2026-03-26T15:47:46.133Z",
       "fields": [],
       "published": true
-    },
-    {
-      "id": "evt_17745406734588q9osrgt8",
-      "title": "sailing test",
-      "date_from": "2026-04-01",
-      "date_to": "",
-      "additionalInfo": "",
-      "location": "",
-      "description": "",
-      "status": "draft",
-      "max_participants": null,
-      "created_at": "2026-03-26T15:57:53.459Z",
-      "fields": [],
-      "published": true
     }
   ],
-  "updated_at": "2026-03-26T16:02:45.645Z"
+  "updated_at": "2026-03-26T16:02:48.925Z"
 }
