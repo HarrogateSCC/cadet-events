@@ -12,7 +12,26 @@
       "created_at": "2026-03-26T13:46:59.959Z",
       "fields": [],
       "published": true
+    },
+    {
+      "id": "evt_1774537030191avh0gn9qi",
+      "title": "test sailing event",
+      "date_from": "2026-04-08",
+      "date_to": "2026-04-11",
+      "additionalInfo": "description goes here",
+      "location": "",
+      "description": "",
+      "status": "draft",
+      "max_participants": null,
+      "created_at": "2026-03-26T14:57:10.191Z",
+      "fields": [
+        {
+          "label": "Has cadet passed swim test?",
+          "type": "es/no"
+        }
+      ],
+      "published": false
     }
   ],
-  "updated_at": "2026-03-26T13:47:41.697Z"
+  "updated_at": "2026-03-26T14:57:10.750Z"
 }
