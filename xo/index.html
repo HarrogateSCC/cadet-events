@@ -353,6 +353,7 @@ function resetForm() {
   document.getElementById('form-title').textContent='New Event';
   document.getElementById('delete-btn').style.display='none';
   fieldCounter=0;
+  addField('text',{label:'Cadet Name',required:1,options:[]});
 }
 
 function editEvent(id) {
@@ -468,7 +469,7 @@ async function requestSync() {
 
 async function sendXOCommand(payload,successMsg) {
   try {
-    await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),mode:'no-cors'});
+    await fetch(WEBHOOK_URL,{method:'POST',body:JSON.stringify(payload),mode:'no-cors'});
     showToast(successMsg||'Done!','success');
   } catch(e) {
     showToast('Network error – please retry','error');
