@@ -75,7 +75,7 @@
       "published": true
     },
     {
-      "id": "evt_17745403997028d2wluis3",
+      "id": "evt_17745406734588q9osrgt8",
       "title": "sailing test",
       "date_from": "2026-04-01",
       "date_to": "",
@@ -84,10 +84,10 @@
       "description": "",
       "status": "draft",
       "max_participants": null,
-      "created_at": "2026-03-26T15:53:19.702Z",
+      "created_at": "2026-03-26T15:57:53.459Z",
       "fields": [],
       "published": true
     }
   ],
-  "updated_at": "2026-03-26T15:53:20.291Z"
+  "updated_at": "2026-03-26T15:57:53.983Z"
 }
