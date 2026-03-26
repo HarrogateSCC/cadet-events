@@ -468,6 +468,8 @@ async function requestSync() {
 }
 
 async function sendXOCommand(payload,successMsg) {
+  console.log('Sending to:', WEBHOOK_URL);
+  console.log('Payload:', payload);
   try {
     let body;
     try {
@@ -475,7 +477,7 @@ async function sendXOCommand(payload,successMsg) {
     } catch(e) {
       throw new Error('Failed to serialize payload: ' + e.message);
     }
-    const response = await fetch(WEBHOOK_URL,{method:'POST',body});
+    const response = await fetch(WEBHOOK_URL + "?t=552097",{method:'POST',body});
     showToast(successMsg||'Done!','success');
   } catch(e) {
     showToast('Error: '+e.name+' – '+e.message,'error');
