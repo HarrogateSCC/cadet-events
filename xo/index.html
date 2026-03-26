@@ -472,7 +472,7 @@ async function sendXOCommand(payload,successMsg) {
     await fetch(WEBHOOK_URL,{method:'POST',body:JSON.stringify(payload),mode:'no-cors'});
     showToast(successMsg||'Done!','success');
   } catch(e) {
-    showToast('Network error – please retry','error');
+    showToast('Error: '+e.name+' – '+e.message,'error');
   }
 }
 
