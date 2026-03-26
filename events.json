@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "id": "demo-sailing",
+      "title": "Sailing Skills Course",
+      "date_from": "2026-04-15",
+      "date_to": "2026-04-17",
+      "location": "Harrogate Marina",
+      "description": "Learn essential sailing techniques and water safety"
+    },
+    {
+      "id": "demo-navigation",
+      "title": "Navigation Training",
+      "date_from": "2026-05-10",
+      "date_to": "2026-05-10",
+      "location": "Unit HQ",
+      "description": "Master compass reading and navigation skills"
+    }
+  ]
+}
