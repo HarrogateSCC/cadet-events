@@ -33,20 +33,6 @@
       "published": true
     },
     {
-      "id": "evt_1774537575249tdyj1wyxe",
-      "title": "test2",
-      "date_from": "2026-03-26",
-      "date_to": "2026-03-28",
-      "additionalInfo": "ngdfhg",
-      "location": "",
-      "description": "",
-      "status": "draft",
-      "max_participants": null,
-      "created_at": "2026-03-26T15:06:15.249Z",
-      "fields": [],
-      "published": true
-    },
-    {
       "id": "evt_1774539637436audr30ow6",
       "title": "sailing",
       "date_from": "2026-05-14",
@@ -57,6 +43,20 @@
       "status": "draft",
       "max_participants": null,
       "created_at": "2026-03-26T15:40:37.437Z",
+      "fields": [],
+      "published": true
+    },
+    {
+      "id": "evt_17745400661333t026mwlp",
+      "title": "erowing",
+      "date_from": "2026-05-14",
+      "date_to": "",
+      "additionalInfo": "",
+      "location": "",
+      "description": "",
+      "status": "draft",
+      "max_participants": null,
+      "created_at": "2026-03-26T15:47:46.133Z",
       "fields": [],
       "published": true
     },
@@ -75,5 +75,5 @@
       "published": true
     }
   ],
-  "updated_at": "2026-03-26T16:02:58.550Z"
+  "updated_at": "2026-03-26T16:05:48.431Z"
 }
