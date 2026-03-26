@@ -47,19 +47,19 @@
       "published": true
     },
     {
-      "id": "evt_17745396018291jdrwlr6a",
+      "id": "evt_1774539637436audr30ow6",
       "title": "sailing",
-      "date_from": "2026-05-08",
+      "date_from": "2026-05-14",
       "date_to": "",
       "additionalInfo": "",
       "location": "",
       "description": "",
       "status": "draft",
       "max_participants": null,
-      "created_at": "2026-03-26T15:40:01.829Z",
+      "created_at": "2026-03-26T15:40:37.437Z",
       "fields": [],
       "published": true
     }
   ],
-  "updated_at": "2026-03-26T15:40:02.183Z"
+  "updated_at": "2026-03-26T15:40:37.746Z"
 }
