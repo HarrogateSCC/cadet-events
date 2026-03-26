@@ -19,9 +19,21 @@
           "options": [],
           "field_order": 0
         }
-      ],
-      "published": true
+      ]
+    },
+    {
+      "id": "evt_1774532819959ydkibcoue",
+      "title": "test",
+      "date_from": "2026-03-27",
+      "date_to": "2026-03-27",
+      "location": "",
+      "description": "",
+      "status": "draft",
+      "max_participants": null,
+      "created_at": "2026-03-26T13:46:59.959Z",
+      "fields": [],
+      "published": false
     }
   ],
-  "updated_at": "2026-03-26T13:43:23.723Z"
+  "updated_at": "2026-03-26T13:47:00.223Z"
 }
