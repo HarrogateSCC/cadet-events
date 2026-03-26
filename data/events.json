@@ -31,7 +31,26 @@
         }
       ],
       "published": true
+    },
+    {
+      "id": "evt_17745373729776r6dre1ty",
+      "title": "erowing",
+      "date_from": "2026-03-28",
+      "date_to": "2026-03-28",
+      "additionalInfo": "bring spare clothes",
+      "location": "",
+      "description": "",
+      "status": "draft",
+      "max_participants": null,
+      "created_at": "2026-03-26T15:02:52.977Z",
+      "fields": [
+        {
+          "label": "Can cadet swim?",
+          "type": "yes/no"
+        }
+      ],
+      "published": false
     }
   ],
-  "updated_at": "2026-03-26T14:57:22.174Z"
+  "updated_at": "2026-03-26T15:02:53.260Z"
 }
