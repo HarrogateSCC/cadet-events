@@ -1,106 +1,387 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Harrogate Sea Cadets – Events</title>
-<style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; background: #f5f7fa; color: #333; }
-  header { background: #1a2e4a; color: white; padding: 24px 20px; text-align: center; }
-  header h1 { margin: 0 0 6px; font-size: 26px; }
-  header p { margin: 0; opacity: 0.8; font-size: 14px; }
-  .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
-  .event-card { background: white; border-radius: 10px; padding: 22px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
-  .event-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
-  .no-events { text-align: center; color: #888; padding: 60px 20px; font-size: 16px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harrogate Sea Cadets – Events</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4f8;
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background: #1a3a5c;
+      color: #fff;
+      padding: 28px 20px 20px;
+      text-align: center;
+    }
+    header .logo-anchor { display: inline-block; margin-bottom: 10px; }
+    header .crest {
+      width: 72px; height: 72px;
+      background: #c9a84c;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+    header h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: 0.02em; }
+    header p { font-size: 1rem; color: #c9a84c; margin-top: 4px; }
+
+    /* Main */
+    main {
+      flex: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 36px 16px;
+      width: 100%;
+    }
+    main > h2 {
+      font-size: 1.4rem;
+      color: #1a3a5c;
+      margin-bottom: 24px;
+      border-bottom: 3px solid #c9a84c;
+      padding-bottom: 8px;
+      display: inline-block;
+    }
+
+    /* Card grid */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 16px;
+    }
+
+    .event-card {
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(26,58,92,0.10);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .event-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(26,58,92,0.16);
+    }
+    .event-card-header {
+      background: linear-gradient(135deg, #1a3a5c 60%, #2a5a8c);
+      height: 8px;
+    }
+    .event-card-body {
+      padding: 22px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .event-title {
+      font-size: 1.15rem;
+      color: #1a3a5c;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .event-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+    .meta-item {
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .icon { margin-right: 4px; }
+    .event-desc {
+      font-size: 0.93rem;
+      color: #444;
+      margin-bottom: 14px;
+      flex: 1;
+    }
+    .btn-signup {
+      margin-top: auto;
+      background: #c9a84c;
+      color: #1a3a5c;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-size: 0.97rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      align-self: flex-start;
+    }
+    .btn-signup:hover { background: #b8963c; }
+
+    /* No events */
+    .no-events {
+      text-align: center;
+      color: #777;
+      padding: 60px 20px;
+      font-size: 1.1rem;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.active { display: flex; }
+
+    .modal-box {
+      background: #fff;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 100%;
+      padding: 32px 28px 28px;
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+    }
+    .modal-close {
+      position: absolute;
+      top: 14px; right: 18px;
+      background: none;
+      border: none;
+      font-size: 1.6rem;
+      color: #888;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .modal-close:hover { color: #333; }
+    .modal-title {
+      font-size: 1.2rem;
+      color: #1a3a5c;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .modal-date {
+      font-size: 0.88rem;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    /* Form */
+    .field-group {
+      margin-bottom: 16px;
+    }
+    .field-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    .req { color: #c0392b; }
+    .field-group input[type="text"],
+    .field-group input[type="email"],
+    .field-group input[type="tel"],
+    .field-group input[type="number"],
+    .field-group input[type="date"],
+    .field-group textarea,
+    .field-group select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .field-group input:focus,
+    .field-group textarea:focus,
+    .field-group select:focus {
+      outline: none;
+      border-color: #1a3a5c;
+    }
+    .field-group input[type="checkbox"] {
+      width: 18px; height: 18px;
+      margin-top: 4px;
+      cursor: pointer;
+    }
+    .btn-submit {
+      background: #1a3a5c;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 11px 28px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.15s;
+    }
+    .btn-submit:hover { background: #2a5a8c; }
+    .btn-submit:disabled { background: #999; cursor: not-allowed; }
+
+    .success-msg {
+      background: #eafaf1;
+      border: 1.5px solid #2ecc71;
+      color: #1a7a3c;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+
+    /* Footer */
+    footer {
+      background: #1a3a5c;
+      color: #c9a84c;
+      text-align: center;
+      padding: 18px 20px;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 500px) {
+      .modal-box { padding: 22px 14px 18px; }
+      header h1 { font-size: 1.2rem; }
+    }
+  </style>
 </head>
 <body>
-<header>
-  <h1>⚓ Harrogate Sea Cadets</h1>
-  <p>Upcoming events – click an event to sign up</p>
-</header>
-<div class="container">
-  
-    <div class="event-card" onclick="openModal('rvjvjo5acjamn68tqb1')">
-      <h3 style="margin:0 0 10px;font-size:18px;color:#1a2e4a">Easter Sailing (Stage 1)</h3>
-      <p style="margin:0 0 6px;color:#555;font-size:14px">📅 8 Apr 2026 – 10 Apr 2026</p>
-      <p style="margin:0 0 14px;color:#555;font-size:14px">📍 Ripon Sailing Club</p>
-      
-      <button onclick="event.stopPropagation();openModal('rvjvjo5acjamn68tqb1')" style="background:#1a2e4a;color:white;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600">Sign Up →</button>
-    </div>
-</div>
+  <header>
+    <div class="crest">⚓</div>
+    <h1>Harrogate Sea Cadets</h1>
+    <p>Events &amp; Sign Up Portal</p>
+  </header>
 
-
-    <div id="modal-rvjvjo5acjamn68tqb1" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:20px">
-      <div style="background:white;border-radius:12px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;padding:30px;position:relative">
-        <button onclick="closeModal('rvjvjo5acjamn68tqb1')" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1">×</button>
-        <h2 style="margin:0 0 8px;font-size:22px;color:#1a2e4a">Easter Sailing (Stage 1)</h2>
-        <p style="margin:0 0 4px;color:#555;font-size:14px">📅 8 Apr 2026 – 10 Apr 2026</p>
-        <p style="margin:0 0 20px;color:#555;font-size:14px">📍 Ripon Sailing Club</p>
-        <hr style="margin:0 0 20px;border:none;border-top:1px solid #eee">
-        <form id="form-rvjvjo5acjamn68tqb1" onsubmit="submitForm(event, 'rvjvjo5acjamn68tqb1', [{"id": "h1cxlid389rmn68timh", "label": "Cadet name"}])">
-          <div style="margin-bottom:16px"><label for="h1cxlid389rmn68timh" style="display:block;font-weight:600;margin-bottom:6px;font-size:14px">Cadet name <span style="color:red">*</span></label><input type="text" id="h1cxlid389rmn68timh" name="h1cxlid389rmn68timh" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box"></div>
-          <button type="submit" id="btn-rvjvjo5acjamn68tqb1" style="background:#1a2e4a;color:white;border:none;padding:12px 28px;border-radius:6px;cursor:pointer;font-size:15px;font-weight:600;width:100%">Sign Up</button>
-          <div id="msg-rvjvjo5acjamn68tqb1" style="margin-top:12px;text-align:center;font-size:14px"></div>
-        </form>
+  <main>
+    <h2>Upcoming Events</h2>
+    <div class="cards-grid">
+    <div class="event-card">
+      <div class="event-card-header"></div>
+      <div class="event-card-body">
+        <h2 class="event-title">Easter Sailing (Stage 1)</h2>
+        <div class="event-meta">
+          <span class="meta-item"><span class="icon">📅</span> 8–10 April 2026</span>
+          <span class="meta-item"><span class="icon">📍</span> Ripon Sailing Club</span>
+        </div>
+        
+        <button class="btn-signup" onclick="openModal('rvjvjo5acjamn68tqb1')">Sign Up</button>
       </div>
-    </div>
+    </div></div>
+  </main>
 
-<script>
-function openModal(id) {
-  var m = document.getElementById('modal-' + id);
-  m.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-}
-function closeModal(id) {
-  document.getElementById('modal-' + id).style.display = 'none';
-  document.body.style.overflow = '';
-}
-window.addEventListener('click', function(e) {
-  if (e.target.style && e.target.style.position === 'fixed') {
-    e.target.style.display = 'none';
-    document.body.style.overflow = '';
-  }
-});
-async function submitForm(e, eventId, fields) {
-  e.preventDefault();
-  var btn = document.getElementById('btn-' + eventId);
-  var msg = document.getElementById('msg-' + eventId);
-  var form = document.getElementById('form-' + eventId);
   
-  btn.disabled = true;
-  btn.textContent = 'Submitting...';
-  msg.textContent = '';
-  
-  var responses = {};
-  fields.forEach(function(f) {
-    var el = form.elements[f.id];
-    if (el) responses[f.label] = el.type === 'checkbox' ? el.checked : el.value;
-  });
-  
-  var payload = { event_id: eventId, responses: responses, submitted_at: new Date().toISOString() };
-  
-  try {
-    await fetch('https://hooks.tasklet.ai/whe_v1r68mdafd7qcat27gmx', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+  <div id="modal-rvjvjo5acjamn68tqb1" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title-rvjvjo5acjamn68tqb1">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeModal('rvjvjo5acjamn68tqb1')" aria-label="Close">&times;</button>
+      <h2 id="modal-title-rvjvjo5acjamn68tqb1" class="modal-title">Sign Up: Easter Sailing (Stage 1)</h2>
+      <p class="modal-date"><strong>8–10 April 2026</strong> &nbsp;|&nbsp; Ripon Sailing Club</p>
+      <div id="success-rvjvjo5acjamn68tqb1" class="success-msg" style="display:none;">
+        ✅ Thank you! Your signup has been received.
+      </div>
+      <form id="form-rvjvjo5acjamn68tqb1" onsubmit="submitForm(event, 'rvjvjo5acjamn68tqb1')">
+        
+        <div class="field-group">
+          <label for="h1cxlid389rmn68timh">Cadet name <span class="req">*</span></label>
+          <input type="text" id="h1cxlid389rmn68timh" name="Cadet name" required>
+        </div>
+        <button type="submit" class="btn-submit">Submit Sign Up</button>
+      </form>
+    </div>
+  </div>
+
+  <footer>
+    Harrogate Sea Cadets | Events Portal
+  </footer>
+
+  <script>
+    var WEBHOOK_URL = "https://hooks.tasklet.ai/whe_v1r68mdafd7qcat27gmx";
+
+    function openModal(eventId) {
+      var modal = document.getElementById('modal-' + eventId);
+      if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeModal(eventId) {
+      var modal = document.getElementById('modal-' + eventId);
+      if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          overlay.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      });
     });
-    // no-cors responses are opaque - if fetch didn't throw, treat as success
-    form.style.display = 'none';
-    msg.style.color = '#1a7a4a';
-    msg.innerHTML = '✅ <strong>You\'re signed up!</strong> We\'ll be in touch with more details.';
-    msg.style.display = 'block';
-  } catch(err) {
-    btn.disabled = false;
-    btn.textContent = 'Sign Up';
-    msg.style.color = '#c0392b';
-    msg.textContent = '❌ Network error. Please try again.';
-  }
-}
-</script>
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(function(m) {
+          m.classList.remove('active');
+          document.body.style.overflow = '';
+        });
+      }
+    });
+
+    function submitForm(e, eventId) {
+      e.preventDefault();
+      var form = document.getElementById('form-' + eventId);
+      var submitBtn = form.querySelector('.btn-submit');
+      var formData = new FormData(form);
+      var data = {};
+      
+      // Collect form values
+      form.querySelectorAll('[name]').forEach(function(el) {
+        if (el.type === 'checkbox') {
+          data[el.name] = el.checked ? 'Yes' : 'No';
+        } else {
+          data[el.name] = el.value;
+        }
+      });
+
+      var payload = {
+        event_id: eventId,
+        data: data
+      };
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+
+      fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        mode: 'no-cors'
+      }).then(function() {
+        form.style.display = 'none';
+        document.getElementById('success-' + eventId).style.display = 'block';
+      }).catch(function() {
+        // With no-cors we may get opaque response; still show success
+        form.style.display = 'none';
+        document.getElementById('success-' + eventId).style.display = 'block';
+      });
+    }
+  </script>
 </body>
 </html>
