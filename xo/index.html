@@ -245,7 +245,7 @@ tr:hover td{background:#f8fafc}
 const WEBHOOK_URL = "https://hooks.tasklet.ai/whe_v1r68mdafd7qcat27gmx";
 const XO_TOKEN = "5d4898afe0e104c67ac8cc6793ab5c3f80932e47efdab0fd";
 const DATA_BASE = "https://raw.githubusercontent.com/HarrogateSCC/cadet-events/main/data";
-const PW_HASH = "2b80dac7f9aa2e7a705907639832f2fa4082bfc26a6c9ee2c0646789c003bb98";
+const PW_HASH = "48b6a90e69bc1328864f8b0d466b2b71b5ddce9b7e70844066a3c94d432c0c2e";
 
 let allEvents = [], allResponses = [], editingEventId = null, fieldCounter = 0, pendingDeleteId = null;
 
@@ -307,7 +307,7 @@ function fmtDate(from,to) {
 function renderEvents() {
   const grid=document.getElementById('events-grid'),stats=document.getElementById('stats-row');
   if (!allEvents.length) {
-    grid.innerHTML='<div class="no-data" style="grid-column:1/-1">No events yet. <a href="#" onclick="showPage('create');return false">Create your first event &#x2192;</a></div>';
+    grid.innerHTML='<div class="no-data" style="grid-column:1/-1">No events yet. <a href="#" onclick="showPage(\'create\');return false">Create your first event &#x2192;</a></div>';
     stats.innerHTML=''; return;
   }
   const pub=allEvents.filter(e=>e.status==='published').length;
