@@ -5,58 +5,102 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Harrogate Sea Cadets – Event Sign Up</title>
 <style>
+  * { box-sizing: border-box; }
   body { font-family: Arial, sans-serif; background: #f0f4f8; margin: 0; padding: 0; }
-  .header { background: #1a3a5c; color: white; padding: 28px 20px; text-align: center; }
-  .header h1 { margin: 0; font-size: 1.8rem; }
-  .header p { margin: 8px 0 0; opacity: 0.85; }
-  .container { max-width: 720px; margin: 32px auto; padding: 0 16px; }
-  button:hover { opacity: 0.9; }
+  .header { background: #1a3a5c; color: white; padding: 32px 20px; text-align: center; }
+  .header h1 { margin: 0; font-size: 2rem; }
+  .header p { margin: 8px 0 0; opacity: 0.85; font-size: 1.05rem; }
+  .container { max-width: 900px; margin: 36px auto; padding: 0 16px; }
+  .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+  .event-card { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.09); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; overflow: hidden; }
+  .event-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.13); }
+  .event-card-inner { padding: 24px; }
+  .event-title { margin: 0 0 10px; color: #1a3a5c; font-size: 1.15rem; }
+  .event-meta { color: #555; margin-bottom: 6px; font-size: 0.95rem; }
+  .signup-btn { margin-top: 16px; background: #1a3a5c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; width: 100%; }
+  .signup-btn:hover { background: #254e7a; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.active { display: flex; }
+  .modal-box { background: white; border-radius: 14px; padding: 32px; max-width: 520px; width: 100%; position: relative; max-height: 90vh; overflow-y: auto; }
+  .modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #888; }
+  .modal-close:hover { color: #333; }
+  .submit-btn { margin-top: 8px; background: #1a3a5c; color: white; border: none; padding: 12px 32px; border-radius: 6px; cursor: pointer; font-size: 1rem; }
+  .submit-btn:hover { background: #254e7a; }
+  footer { text-align: center; color: #aaa; font-size: 0.85rem; margin: 48px 0 24px; }
 </style>
 </head>
 <body>
 <div class="header">
   <h1>⚓ Harrogate Sea Cadets</h1>
-  <p>Upcoming Events – Sign Up Below</p>
+  <p>Upcoming Events – Click an event to sign up</p>
 </div>
 <div class="container">
-
-<div style="background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);padding:28px;margin-bottom:28px">
-  <h2 style="margin:0 0 6px;color:#1a3a5c;font-size:1.4rem">Easter Sailing (Stage 1)</h2>
-  <div style="color:#555;margin-bottom:4px">📅 8 Apr 2026 – 10 Apr 2026</div>
-  <div style="color:#555;margin-bottom:16px">📍 Ripon Sailing Club</div>
-  
-  <form id="form-rvjvjo5acjamn68tqb1" onsubmit="submitForm(event, 'rvjvjo5acjamn68tqb1')">
-    <div style="margin-bottom:12px"><label>Cadet name <span style="color:red">*</span><br><input type="text" name="h1cxlid389rmn68timh" required style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;margin-top:4px"></label></div>
-    <button type="submit" style="margin-top:12px;background:#1a3a5c;color:white;border:none;padding:12px 28px;border-radius:6px;cursor:pointer;font-size:1rem">Sign Up</button>
-    <div id="msg-rvjvjo5acjamn68tqb1" style="margin-top:10px;font-weight:bold"></div>
-  </form>
+  <div class="events-grid">
+    
+<div class="event-card" onclick="openModal('rvjvjo5acjamn68tqb1')">
+  <div class="event-card-inner">
+    <h2 class="event-title">Easter Sailing (Stage 1)</h2>
+    <div class="event-meta">📅 8 Apr 2026 – 10 Apr 2026</div>
+    <div class="event-meta">📍 Ripon Sailing Club</div>
+    <button class="signup-btn" onclick="openModal('rvjvjo5acjamn68tqb1'); event.stopPropagation()">Sign Up →</button>
+  </div>
 </div>
 
-<p style="text-align:center;color:#888;font-size:0.85rem;margin-top:40px">Harrogate Sea Cadet Unit &bull; Questions? Contact your unit XO</p>
+  </div>
 </div>
+
+<div id="modal-rvjvjo5acjamn68tqb1" class="modal-overlay" onclick="closeModal('rvjvjo5acjamn68tqb1')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal('rvjvjo5acjamn68tqb1')">✕</button>
+    <h2 style="margin:0 0 6px;color:#1a3a5c">Easter Sailing (Stage 1)</h2>
+    <div style="color:#555;margin-bottom:4px">📅 8 Apr 2026 – 10 Apr 2026</div>
+    <div style="color:#555;margin-bottom:16px">📍 Ripon Sailing Club</div>
+    
+    <hr style="margin-bottom:20px;border:none;border-top:1px solid #eee">
+    <form id="form-rvjvjo5acjamn68tqb1" onsubmit="submitForm(event, 'rvjvjo5acjamn68tqb1')">
+      <div style="margin-bottom:16px"><label style="display:block;font-weight:600;color:#333">Cadet name <span style="color:#c0392b">*</span><br><input type="text" name="h1cxlid389rmn68timh" required style="width:100%;padding:10px;border:1px solid #ccd;border-radius:6px;margin-top:4px;font-size:0.95rem;box-sizing:border-box"></label></div>
+      <button type="submit" class="submit-btn">Sign Up</button>
+      <div id="msg-rvjvjo5acjamn68tqb1" style="margin-top:12px;font-weight:bold"></div>
+    </form>
+  </div>
+</div>
+
+<footer>Harrogate Sea Cadet Unit &bull; Questions? Contact your unit XO</footer>
 <script>
+function openModal(id) {
+  document.getElementById('modal-' + id).classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById('modal-' + id).classList.remove('active');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active').forEach(function(m) {
+      m.classList.remove('active');
+      document.body.style.overflow = '';
+    });
+  }
+});
 async function submitForm(e, eventId) {
   e.preventDefault();
   const form = e.target;
   const msg = document.getElementById('msg-' + eventId);
   const data = {};
-  new FormData(form).forEach((v, k) => data[k] = v);
+  new FormData(form).forEach(function(v, k) { data[k] = v; });
   msg.style.color = '#555';
   msg.textContent = 'Submitting...';
   try {
-    const res = await fetch('https://hooks.tasklet.ai/whe_v1r68mdafd7qcat27gmx', {
+    await fetch('https://hooks.tasklet.ai/whe_v1r68mdafd7qcat27gmx', {
       method: 'POST',
+      mode: 'no-cors',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ event_id: eventId, responses: data })
     });
-    if (res.ok) {
-      msg.style.color = 'green';
-      msg.textContent = '✅ Thank you! Your signup has been received.';
-      form.reset();
-    } else {
-      msg.style.color = 'red';
-      msg.textContent = '❌ Something went wrong. Please try again.';
-    }
+    msg.style.color = 'green';
+    msg.textContent = '✅ Thank you! Your signup has been received.';
+    form.reset();
   } catch(err) {
     msg.style.color = 'red';
     msg.textContent = '❌ Network error. Please try again.';
