@@ -422,7 +422,7 @@ function collectFields() {
   }).filter(f=>f.label);
 }
 
-async async function saveEvent(statusOverride) {
+async function saveEvent(statusOverride) {
   const title=document.getElementById('f-title').value.trim();
   const df=document.getElementById('f-date-from').value;
   const dt=document.getElementById('f-date-to').value;
@@ -443,7 +443,7 @@ async async function saveEvent(statusOverride) {
   setTimeout(refreshData,4000);
 }
 
-async async function togglePublish(id,action) {
+async function togglePublish(id,action) {
   await sendXOCommand({xo_command:action+'_event',xo_token:XO_TOKEN,event_id:id},
     action==='publish'?'Published! 🚀':'Unpublished');
   setTimeout(refreshData,4000);
