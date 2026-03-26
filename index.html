@@ -226,7 +226,7 @@
         let allEvents = [];
         let currentFilter = 'all';
         const TASKLET_APP_URL = 'https://app.tasklet.ai/agent/home/apps/sea-cadet-events/#parent';
-        const GITHUB_DATA_URL = 'https://raw.githubusercontent.com/HarrogateSCC/cadet-events/main/events.json';
+        const GITHUB_DATA_URL = 'https://raw.githubusercontent.com/HarrogateSCC/cadet-events/main/events.json?t=' + Date.now();
         
         async function loadEvents() {
             try {
