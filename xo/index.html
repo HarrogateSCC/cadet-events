@@ -469,15 +469,21 @@ async function requestSync() {
 
 async function sendXOCommand(payload,successMsg) {
   try {
+    console.log('sendXOCommand called with:', payload);
     let body;
     try {
       body = JSON.stringify(payload);
+      console.log('Payload serialized, body length:', body.length);
     } catch(e) {
+      console.error('Stringify error:', e);
       throw new Error('Failed to serialize payload: ' + e.message);
     }
+    console.log('Fetching to:', WEBHOOK_URL);
     const response = await fetch(WEBHOOK_URL,{method:'POST',body,mode:'no-cors'});
+    console.log('Fetch succeeded');
     showToast(successMsg||'Done!','success');
   } catch(e) {
+    console.error('Full error:', e);
     showToast('Error: '+e.name+' – '+e.message,'error');
   }
 }
