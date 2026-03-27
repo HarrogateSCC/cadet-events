@@ -414,6 +414,11 @@
     if (error) {
       errEl.textContent = 'Failed to submit. Please try again.';
       errEl.classList.remove('hidden');
+    } else if (isManualEntry) {
+      // Return to submissions view after manual entry
+      isManualEntry = false;
+      closeModal('modal-event');
+      openSubmissions(eventId);
     } else {
       document.getElementById('modal-form-container').classList.add('hidden');
       document.getElementById('modal-form-success').classList.remove('hidden');
@@ -768,6 +773,60 @@
   });
 
   // =============================================
+  //  XO: MANUAL ENTRY
+  // =============================================
+
+  let isManualEntry = false;
+
+  async function manualEntry() {
+    if (!sb || !currentSubmissionsEvent) return;
+    const eventId = currentSubmissionsEvent;
+    const ev = xoEventsCache.find(e => e.id === eventId);
+    if (!ev) return;
+
+    isManualEntry = true;
+    closeModal('modal-submissions');
+
+    // Reuse the sign-up modal but bypass closing date check
+    document.getElementById('modal-event-title').textContent = ev.title + ' — Manual Entry';
+
+    const dateSpan = document.getElementById('modal-event-date');
+    dateSpan.innerHTML = `<svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 4h10M5 11h14M5 19h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> ${formatDateRangeLong(ev.event_date, ev.event_date_end)}`;
+
+    const locSpan = document.getElementById('modal-event-location');
+    if (ev.location) {
+      locSpan.innerHTML = `<svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg> ${escHtml(ev.location)}`;
+      locSpan.style.display = '';
+    } else {
+      locSpan.style.display = 'none';
+    }
+
+    document.getElementById('modal-event-desc').textContent = ev.description || '';
+
+    const fieldsContainer = document.getElementById('modal-form-fields');
+    fieldsContainer.innerHTML = '';
+    document.getElementById('modal-form-success').classList.add('hidden');
+    document.getElementById('modal-form-container').classList.remove('hidden');
+    document.getElementById('modal-form-error').classList.add('hidden');
+
+    // Remove any previous closed message
+    const prevClosed = fieldsContainer.parentElement.querySelector('.manual-closed-msg');
+    if (prevClosed) prevClosed.remove();
+
+    const schema = ev.form_fields || [];
+    if (schema.length === 0) {
+      fieldsContainer.innerHTML = '<p class="text-sm text-gray-500 italic">No form fields — just click Submit to sign up.</p>';
+    } else {
+      schema.forEach(field => {
+        fieldsContainer.appendChild(renderFormField(field));
+      });
+    }
+
+    document.getElementById('modal-signup-form').dataset.eventId = eventId;
+    openModal('modal-event');
+  }
+
+  // =============================================
   //  XO: SUBMISSIONS
   // =============================================
 
@@ -982,6 +1041,7 @@
     submitSignup,
     openSubmissions,
     exportSubmissions,
+    manualEntry,
     promptDelete,
     confirmDelete,
     closeModal,

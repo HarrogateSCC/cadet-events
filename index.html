@@ -295,6 +295,11 @@
             <p class="text-gray-500 text-sm mt-0.5">Sign-up submissions</p>
           </div>
           <div class="flex items-center gap-3">
+            <button onclick="App.manualEntry()" id="manual-entry-btn"
+              class="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-navy text-white rounded-lg hover:bg-deep-navy transition font-semibold">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Manual Entry
+            </button>
             <button onclick="App.exportSubmissions()" id="export-btn"
               class="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-700">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
