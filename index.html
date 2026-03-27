@@ -1,767 +1,335 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Events Sign Up</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1e293b; color: #e2e8f0; min-height: 100vh; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #0ea5e9; padding-bottom: 15px; }
-        .header h1 { font-size: 28px; color: #0ea5e9; }
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
-        .btn-primary { background: #0ea5e9; color: white; }
-        .btn-primary:hover { background: #0284c7; }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-secondary { background: #64748b; color: white; margin-left: 10px; }
-        .btn-secondary:hover { background: #475569; }
-        .error { background: #7f1d1d; color: #fecaca; padding: 15px; border-radius: 6px; margin: 20px 0; border: 1px solid #dc2626; }
-        .success { background: #15803d; color: #86efac; padding: 15px; border-radius: 6px; margin: 20px 0; border: 1px solid #22c55e; }
-        .hidden { display: none !important; }
-        
-        /* Parent View */
-        .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-        .event-card { background: #334155; padding: 20px; border-radius: 8px; border-left: 4px solid #0ea5e9; cursor: pointer; transition: transform 0.2s; }
-        .event-card:hover { transform: translateY(-5px); background: #475569; }
-        .event-card h3 { color: #0ea5e9; margin-bottom: 10px; }
-        .event-card p { color: #cbd5e1; font-size: 14px; margin: 5px 0; }
-        .event-card .btn { margin-top: 15px; width: 100%; }
-        
-        /* XO View */
-        .xo-content { display: none; }
-        .xo-content.active { display: block; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
-        .form-group input, .form-group textarea { width: 100%; padding: 10px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: #e2e8f0; font-family: inherit; }
-        .form-group textarea { resize: vertical; }
-        .field-builder { background: #334155; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        .field-builder h3 { margin-bottom: 15px; color: #0ea5e9; }
-        .field { background: #1e293b; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #0ea5e9; }
-        .field label { margin-bottom: 0; }
-        .field .btn { margin-top: 10px; }
-        
-        /* Modal */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
-        .modal.active { display: flex; }
-        .modal-content { background: #1e293b; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid #0ea5e9; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #475569; padding-bottom: 15px; }
-        .modal-header h2 { color: #0ea5e9; }
-        .modal-close { background: none; border: none; color: #0ea5e9; font-size: 24px; cursor: pointer; }
-        
-        /* Responses Table */
-        .responses-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .responses-table th { background: #334155; padding: 12px; text-align: left; border-bottom: 2px solid #0ea5e9; }
-        .responses-table td { padding: 12px; border-bottom: 1px solid #475569; }
-        .responses-table tr:hover { background: #334155; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sea Cadets Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📅 Events Sign Up</h1>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- ========== NAVBAR ========== -->
+  <nav id="navbar" class="bg-navy text-white shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Sea_Cadet_Corps_badge.svg/120px-Sea_Cadet_Corps_badge.svg.png"
+             alt="Sea Cadets" class="h-10 w-10 object-contain" onerror="this.style.display='none'" />
+        <span class="text-xl font-bold tracking-wide">Sea Cadets Portal</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <button id="btn-parent-view" onclick="App.showParentView()"
+          class="px-3 py-1.5 rounded text-sm font-medium hover:bg-white/20 transition">Events</button>
+        <button id="btn-xo-view" onclick="App.showXOView()"
+          class="px-3 py-1.5 rounded text-sm font-medium hover:bg-white/20 transition">XO Admin</button>
+        <button id="btn-logout" onclick="App.logout()"
+          class="hidden px-3 py-1.5 bg-white/20 rounded text-sm font-medium hover:bg-white/30 transition">Log Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========== SETUP BANNER (shown when not configured) ========== -->
+  <div id="setup-banner" class="hidden bg-amber-50 border-b border-amber-200 px-4 py-3 text-center text-amber-800 text-sm">
+    ⚠️ Supabase is not yet configured. Edit <strong>config.js</strong> with your Supabase URL and anon key to activate the portal.
+  </div>
+
+  <!-- ========== PARENT VIEW ========== -->
+  <div id="view-parent" class="max-w-5xl mx-auto px-4 py-8">
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-navy">Upcoming Events</h1>
+      <p class="text-gray-500 mt-1">Sign up for Sea Cadet events below.</p>
+    </div>
+    <div id="events-loading" class="flex items-center justify-center py-16 text-gray-400">
+      <svg class="animate-spin h-8 w-8 mr-3 text-navy" viewBox="0 0 24 24" fill="none">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+      </svg>
+      Loading events…
+    </div>
+    <div id="events-empty" class="hidden text-center py-16 text-gray-400">
+      <svg class="mx-auto mb-3 h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 4h10M5 11h14M5 19h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+      </svg>
+      <p class="font-medium">No upcoming events yet.</p>
+      <p class="text-sm mt-1">Check back soon!</p>
+    </div>
+    <div id="events-list" class="grid gap-4 md:grid-cols-2"></div>
+  </div>
+
+  <!-- ========== XO ADMIN VIEW ========== -->
+  <div id="view-xo" class="hidden max-w-6xl mx-auto px-4 py-8">
+
+    <!-- XO Login Panel -->
+    <div id="xo-login" class="max-w-md mx-auto">
+      <div class="bg-white rounded-xl shadow-md p-8">
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-navy rounded-full mb-3">
+            <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-navy">XO Login</h2>
+          <p class="text-gray-500 text-sm mt-1">Admin access only</p>
+        </div>
+        <div id="login-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
+        <form onsubmit="App.login(event)" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input id="login-email" type="email" required placeholder="xo@seacadets.org"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input id="login-password" type="password" required placeholder="••••••••"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent" />
+          </div>
+          <button type="submit"
+            class="w-full bg-navy text-white py-2.5 rounded-lg font-semibold hover:bg-navy-dark transition">
+            Log In
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- XO Dashboard (shown after login) -->
+    <div id="xo-dashboard" class="hidden">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-3xl font-bold text-navy">XO Dashboard</h1>
+          <p class="text-gray-500 mt-1">Manage events and view sign-ups.</p>
+        </div>
+        <button onclick="App.openCreateEvent()"
+          class="flex items-center gap-2 bg-navy text-white px-4 py-2.5 rounded-lg font-semibold hover:bg-navy-dark transition">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          New Event
+        </button>
+      </div>
+
+      <!-- XO Stats Bar -->
+      <div class="grid grid-cols-3 gap-4 mb-8">
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Events</p>
+          <p id="stat-total" class="text-3xl font-bold text-navy mt-1">—</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Upcoming</p>
+          <p id="stat-upcoming" class="text-3xl font-bold text-green-600 mt-1">—</p>
+        </div>
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Sign-ups</p>
+          <p id="stat-signups" class="text-3xl font-bold text-amber-600 mt-1">—</p>
+        </div>
+      </div>
+
+      <!-- XO Events Table -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+          <h2 class="font-semibold text-gray-700">All Events</h2>
+        </div>
+        <div id="xo-events-loading" class="flex items-center justify-center py-12 text-gray-400">
+          <svg class="animate-spin h-6 w-6 mr-2 text-navy" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+          </svg>
+          Loading…
+        </div>
+        <div id="xo-events-empty" class="hidden text-center py-12 text-gray-400">No events yet. Create your first one!</div>
+        <table id="xo-events-table" class="hidden w-full text-sm">
+          <thead class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide">
+            <tr>
+              <th class="px-6 py-3 text-left">Event</th>
+              <th class="px-6 py-3 text-left">Date</th>
+              <th class="px-6 py-3 text-left">Location</th>
+              <th class="px-6 py-3 text-center">Sign-ups</th>
+              <th class="px-6 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="xo-events-tbody" class="divide-y divide-gray-100"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== MODAL: Event Detail + Sign-up Form (Parent) ========== -->
+  <div id="modal-event" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex items-start justify-between mb-4">
+          <div class="flex-1">
+            <h2 id="modal-event-title" class="text-2xl font-bold text-navy"></h2>
+            <div class="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
+              <span id="modal-event-date" class="flex items-center gap-1">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 4h10M5 11h14M5 19h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </span>
+              <span id="modal-event-location" class="flex items-center gap-1">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </span>
+            </div>
+          </div>
+          <button onclick="App.closeModal('modal-event')" class="ml-4 text-gray-400 hover:text-gray-600">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <p id="modal-event-desc" class="text-gray-600 mb-6 whitespace-pre-wrap"></p>
+        <hr class="mb-6 border-gray-200"/>
+        <div id="modal-form-success" class="hidden text-center py-6">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-3">
+            <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-800">You're signed up!</h3>
+          <p class="text-gray-500 mt-1">We look forward to seeing you there.</p>
+          <button onclick="App.closeModal('modal-event')" class="mt-4 px-5 py-2 bg-navy text-white rounded-lg font-medium hover:bg-navy-dark transition">Close</button>
+        </div>
+        <div id="modal-form-container">
+          <h3 class="font-semibold text-gray-700 mb-4">Sign-up Form</h3>
+          <form id="modal-signup-form" onsubmit="App.submitSignup(event)" class="space-y-4">
+            <div id="modal-form-fields"></div>
+            <div id="modal-form-error" class="hidden p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
+            <button type="submit"
+              class="w-full bg-navy text-white py-2.5 rounded-lg font-semibold hover:bg-navy-dark transition">
+              Submit Sign-up
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== MODAL: Create / Edit Event (XO) ========== -->
+  <div id="modal-create-event" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 id="create-event-title" class="text-2xl font-bold text-navy">New Event</h2>
+          <button onclick="App.closeModal('modal-create-event')" class="text-gray-400 hover:text-gray-600">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <form id="create-event-form" onsubmit="App.saveEvent(event)" class="space-y-5">
+          <!-- Event Details -->
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Event Title <span class="text-red-500">*</span></label>
+              <input id="ce-title" type="text" required placeholder="e.g. Annual Sailing Weekend"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
+            </div>
             <div>
-                <button class="btn btn-primary" id="toggleXoView">XO View</button>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Date & Time <span class="text-red-500">*</span></label>
+              <input id="ce-date" type="datetime-local" required
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
             </div>
-        </div>
-
-        <div id="errorMsg" class="error hidden"></div>
-        <div id="successMsg" class="success hidden"></div>
-
-        <!-- PARENT VIEW -->
-        <div id="parentView">
-            <h2 style="margin-bottom: 20px;">Available Events</h2>
-            <div id="eventsList" class="events-grid">
-                <p>Loading events...</p>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <input id="ce-location" type="text" placeholder="e.g. Portsmouth Harbour"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
             </div>
-        </div>
-
-        <!-- XO VIEW -->
-        <div id="xoView" class="xo-content">
-            <h2 style="margin-bottom: 20px;">Event Management</h2>
-            
-            <div style="background: #334155; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h3 style="margin-bottom: 15px;">Create New Event</h3>
-                <div class="form-group">
-                    <label>Event Title</label>
-                    <input type="text" id="eventTitle" placeholder="e.g., Summer Sailing Course">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="form-group">
-                        <label>Start Date</label>
-                        <input type="date" id="eventStartDate">
-                    </div>
-                    <div class="form-group">
-                        <label>End Date (optional)</label>
-                        <input type="date" id="eventEndDate">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Additional Information (optional)</label>
-                    <textarea id="eventAdditionalInfo" placeholder="Add any notes for parents (e.g., what to bring, meeting point, requirements)" style="min-height: 100px;"></textarea>
-                </div>
-                
-                <div class="field-builder">
-                    <h3>Custom Fields</h3>
-                    <p style="color: #cbd5e1; margin-bottom: 15px; font-size: 14px;">Cadet Name is always included and required.</p>
-                    <div id="fieldsList"></div>
-                    <button class="btn btn-secondary" id="addFieldBtn">+ Add Field</button>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
-                    <button class="btn btn-secondary" id="createDraftBtn">Create Draft</button>
-                    <button class="btn btn-primary" id="createPublishBtn">Create and Publish</button>
-                </div>
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea id="ce-description" rows="3" placeholder="Event details for parents…"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy resize-none"></textarea>
             </div>
+          </div>
 
-            <div id="eventsManagement"></div>
-        </div>
+          <!-- Form Builder -->
+          <div class="border border-gray-200 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-semibold text-gray-700">Sign-up Form Fields</h3>
+              <div class="relative">
+                <button type="button" onclick="App.toggleFieldMenu()" id="add-field-btn"
+                  class="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-navy text-white rounded-lg hover:bg-navy-dark transition">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  Add Field
+                </button>
+                <div id="field-type-menu" class="hidden absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden text-sm">
+                  <button type="button" onclick="App.addFormField('text')"        class="field-menu-item">Short Text</button>
+                  <button type="button" onclick="App.addFormField('textarea')"    class="field-menu-item">Long Text</button>
+                  <button type="button" onclick="App.addFormField('number')"      class="field-menu-item">Number</button>
+                  <button type="button" onclick="App.addFormField('email')"       class="field-menu-item">Email</button>
+                  <button type="button" onclick="App.addFormField('tel')"         class="field-menu-item">Phone Number</button>
+                  <button type="button" onclick="App.addFormField('date')"        class="field-menu-item">Date</button>
+                  <button type="button" onclick="App.addFormField('checkbox')"    class="field-menu-item">Checkbox (Yes/No)</button>
+                  <button type="button" onclick="App.addFormField('dropdown')"    class="field-menu-item">Dropdown</button>
+                </div>
+              </div>
+            </div>
+            <div id="form-builder-fields" class="space-y-3">
+              <p id="form-builder-empty" class="text-center text-sm text-gray-400 py-4">
+                No fields added yet. Use "Add Field" to build your sign-up form.
+              </p>
+            </div>
+          </div>
+
+          <div id="create-event-error" class="hidden p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
+          <div class="flex gap-3 pt-2">
+            <button type="button" onclick="App.closeModal('modal-create-event')"
+              class="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg font-semibold hover:bg-gray-50 transition">Cancel</button>
+            <button type="submit" id="save-event-btn"
+              class="flex-1 bg-navy text-white py-2.5 rounded-lg font-semibold hover:bg-navy-dark transition">Save Event</button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 
-    <!-- SIGNUP MODAL -->
-    <div id="signupModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalEventTitle"></h2>
-                <button class="modal-close" onclick="closeSignupModal()">✕</button>
-            </div>
-            <form id="signupForm"></form>
+  <!-- ========== MODAL: View Submissions (XO) ========== -->
+  <div id="modal-submissions" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 id="subs-event-title" class="text-xl font-bold text-navy"></h2>
+            <p class="text-gray-500 text-sm mt-0.5">Sign-up submissions</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="App.exportSubmissions()" id="export-btn"
+              class="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-700">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Export CSV
+            </button>
+            <button onclick="App.closeModal('modal-submissions')" class="text-gray-400 hover:text-gray-600">
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
         </div>
+        <div id="subs-loading" class="text-center py-10 text-gray-400">Loading…</div>
+        <div id="subs-empty" class="hidden text-center py-10 text-gray-400">No sign-ups yet for this event.</div>
+        <div id="subs-table-wrap" class="hidden overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead id="subs-thead" class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wide"></thead>
+            <tbody id="subs-tbody" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const GITHUB_OWNER = 'HarrogateSCC';
-        const GITHUB_REPO = 'cadet-events';
-        const GITHUB_TOKEN = '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';
+  <!-- ========== MODAL: Delete Confirm ========== -->
+  <div id="modal-delete" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+      <div class="text-center">
+        <div class="inline-flex items-center justify-center w-14 h-14 bg-red-100 rounded-full mb-4">
+          <svg class="h-7 w-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-800">Delete Event?</h3>
+        <p class="text-gray-500 text-sm mt-1">This will permanently delete the event and all its sign-ups. This cannot be undone.</p>
+        <div class="flex gap-3 mt-6">
+          <button onclick="App.closeModal('modal-delete')"
+            class="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-lg font-semibold hover:bg-gray-50 transition">Cancel</button>
+          <button id="confirm-delete-btn" onclick="App.confirmDelete()"
+            class="flex-1 bg-red-600 text-white py-2.5 rounded-lg font-semibold hover:bg-red-700 transition">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        const app = {
-            isXoView: false,
-            events: [],
-            responses: [],
-            newEventFields: []
-        };
-
-        function showError(msg) {
-            const el = document.getElementById('errorMsg');
-            el.textContent = msg;
-            el.classList.remove('hidden');
-            setTimeout(() => el.classList.add('hidden'), 5000);
-        }
-
-        function showSuccess(msg) {
-            const el = document.getElementById('successMsg');
-            el.textContent = msg;
-            el.classList.remove('hidden');
-            setTimeout(() => el.classList.add('hidden'), 3000);
-        }
-
-        async function fetchFromGitHub(filePath) {
-            try {
-                const url = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main/data/${filePath}?t=${Date.now()}`;
-                const resp = await fetch(url);
-                if (resp.status === 404) {
-                    console.log(`${filePath} not found, returning empty structure`);
-                    return filePath === 'events.json' ? [] : [];
-                }
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                return await resp.json();
-            } catch (e) {
-                console.error(`Failed to fetch ${filePath}:`, e);
-                return filePath === 'events.json' ? [] : [];
-            }
-        }
-
-        async function saveToGitHub(filePath, content) {
-            try {
-                const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/data/${filePath}`;
-                
-                // Get current file SHA
-                const getResp = await fetch(url, {
-                    headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
-                });
-                
-                let sha = null;
-                if (getResp.ok) {
-                    const data = await getResp.json();
-                    sha = data.sha;
-                }
-
-                // Wrap content in proper structure
-                let wrappedContent = content;
-                if (filePath === 'events.json') {
-                    wrappedContent = { events: content, updated_at: new Date().toISOString() };
-                } else if (filePath === 'responses.json') {
-                    wrappedContent = { responses: content, updated_at: new Date().toISOString() };
-                }
-
-                const payload = {
-                    message: `Update ${filePath}`,
-                    content: btoa(JSON.stringify(wrappedContent, null, 2)),
-                    sha: sha
-                };
-
-                const saveResp = await fetch(url, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!saveResp.ok) throw new Error(`Failed to save: ${saveResp.status}`);
-                return true;
-            } catch (e) {
-                console.error(`Save error for ${filePath}:`, e);
-                showError(`Failed to save: ${e.message}`);
-                return false;
-            }
-        }
-
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = String(date.getFullYear()).slice(-2);
-            return `${day}/${month}/${year}`;
-        }
-
-        function parseDate(dateStr) {
-            if (!dateStr) return new Date(0);
-            const date = new Date(dateStr);
-            return isNaN(date.getTime()) ? new Date(0) : date;
-        }
-
-        async function loadData() {
-            const eventsData = await fetchFromGitHub('events.json');
-            const responsesData = await fetchFromGitHub('responses.json');
-            
-            // Handle both direct array and nested structure { events: [...] }
-            app.events = Array.isArray(eventsData) ? eventsData : (eventsData?.events || []);
-            app.responses = Array.isArray(responsesData) ? responsesData : (responsesData?.responses || []);
-            
-            console.log('Loaded events:', app.events);
-            console.log('Loaded responses:', app.responses);
-            renderView();
-        }
-
-        function renderView() {
-            if (app.isXoView) {
-                renderXoView();
-            } else {
-                renderParentView();
-            }
-        }
-
-        function renderParentView() {
-            const el = document.getElementById('eventsList');
-            const published = app.events.filter(e => e.published);
-            
-            if (published.length === 0) {
-                el.innerHTML = '<p>No events available yet.</p>';
-                return;
-            }
-
-            // Sort by start date (earliest first)
-            published.sort((a, b) => parseDate(a.date_from) - parseDate(b.date_from));
-
-            el.innerHTML = published.map(event => `
-                <div class="event-card">
-                    <h3>${event.title}</h3>
-                    <p>📅 ${event.date_to && event.date_to !== event.date_from ? formatDate(event.date_from) + ' to ' + formatDate(event.date_to) : formatDate(event.date_from)}</p>
-                    ${event.additionalInfo ? `<p style="color: #94a3b8; font-size: 14px; margin: 10px 0; font-style: italic;">${event.additionalInfo}</p>` : ''}
-                    <button class="btn btn-primary" onclick="openSignupModal('${event.id}')">Sign Up</button>
-                </div>
-            `).join('');
-        }
-
-        function renderXoView() {
-            console.log('=== renderXoView called ===');
-            const el = document.getElementById('eventsManagement');
-            console.log('el element:', el);
-            
-            // Sort by start date (earliest first)
-            const sortedEvents = [...app.events].sort((a, b) => parseDate(a.date_from) - parseDate(b.date_from));
-            console.log('Sorted events:', sortedEvents.length);
-            
-            const html = sortedEvents.map(event => `
-                <div style="background: #334155; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3>${event.title} ${event.published ? '✓' : '(Draft)'}</h3>
-                    <p style="color: #cbd5e1;">📅 ${event.date_to && event.date_to !== event.date_from ? formatDate(event.date_from) + ' to ' + formatDate(event.date_to) : formatDate(event.date_from)}</p>
-                    ${event.additionalInfo ? `<p style="color: #94a3b8; font-size: 14px; margin: 10px 0; font-style: italic; padding: 10px; background: #1e293b; border-radius: 4px;"><strong>Info:</strong> ${event.additionalInfo}</p>` : ''}
-                    
-                    <div style="margin: 15px 0; padding: 15px; background: #1e293b; border-radius: 6px;">
-                        <p style="margin-bottom: 10px;"><strong>Custom Fields:</strong></p>
-                        <ul style="color: #cbd5e1; margin-left: 20px;">
-                            <li>Cadet Name (required, locked)</li>
-                            ${(event.fields || []).map(f => `<li>${f.label} (${f.type})</li>`).join('')}
-                        </ul>
-                    </div>
-
-                    <div style="margin: 15px 0; padding: 15px; background: #1e293b; border-radius: 6px;">
-                        <p><strong>Responses: ${countResponses(event.id)}</strong></p>
-                        <button class="btn btn-secondary" onclick="viewResponses('${event.id}')">View Responses</button>
-                    </div>
-
-                    <button class="btn ${event.published ? 'btn-danger' : 'btn-primary'} publish-btn" data-event-id="${event.id}">
-                        ${event.published ? 'Unpublish' : 'Publish'}
-                    </button>
-                    <button class="btn btn-danger delete-btn" data-event-id="${event.id}">Delete</button>
-                </div>
-            `).join('') || '<p>No events created yet.</p>';
-
-            console.log('Setting innerHTML...');
-            el.innerHTML = html;
-            console.log('HTML set. Now attaching listeners...');
-            
-            // Attach event listeners immediately
-            const deleteButtons = document.querySelectorAll('.delete-btn');
-            console.log('Found ' + deleteButtons.length + ' delete buttons');
-            deleteButtons.forEach((btn, idx) => {
-                console.log('Attaching listener to delete button', idx, btn);
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const eventId = this.getAttribute('data-event-id');
-                    console.log('✓ DELETE CLICKED for event:', eventId);
-                    deleteEvent(eventId);
-                });
-            });
-            
-            const publishButtons = document.querySelectorAll('.publish-btn');
-            console.log('Found ' + publishButtons.length + ' publish buttons');
-            publishButtons.forEach((btn, idx) => {
-                console.log('Attaching listener to publish button', idx, btn);
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const eventId = this.getAttribute('data-event-id');
-                    console.log('✓ PUBLISH CLICKED for event:', eventId);
-                    toggleEventPublish(eventId);
-                });
-            });
-            
-            console.log('=== renderXoView complete ===');
-        }
-
-        function countResponses(eventId) {
-            return app.responses.filter(r => r.eventId === eventId).length;
-        }
-
-        async function viewResponses(eventId) {
-            // Reload fresh data from GitHub before displaying
-            await loadData();
-            
-            const event = app.events.find(e => e.id === eventId);
-            const responses = app.responses.filter(r => r.eventId === eventId);
-            
-            if (responses.length === 0) {
-                showError('No responses yet for this event.');
-                return;
-            }
-
-            // Check if a Cadet Name field already exists (case-insensitive)
-            const hasCadetNameField = (event.fields || []).some(f => f.label.toLowerCase() === 'cadet name');
-            const fields = [
-                ...(hasCadetNameField ? [] : ['Cadet Name']),
-                ...(event.fields || []).map(f => f.label)
-            ];
-            
-            const table = `
-                <div id="responsesPanel" style="margin-top: 20px; padding: 20px; background: #334155; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3>${event.title} - Responses (${responses.length})</h3>
-                        <div>
-                            <button class="btn btn-secondary" onclick="exportResponses('${eventId}', ${JSON.stringify(fields).replace(/\"/g, '&quot;')})">📥 Export CSV</button>
-                            <button class="btn btn-secondary" onclick="document.getElementById('responsesPanel').remove()">Close</button>
-                        </div>
-                    </div>
-                    <table class="responses-table">
-                        <thead>
-                            <tr>
-                                ${fields.map(f => `<th>${f}</th>`).join('')}
-                                <th>Submitted</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${responses.map(r => `
-                                <tr>
-                                    ${fields.map(f => `<td>${r.data[f] || '-'}</td>`).join('')}
-                                    <td>${new Date(r.submittedAt).toLocaleString()}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            document.getElementById('eventsManagement').innerHTML += table;
-        }
-        
-        function exportResponses(eventId, fields) {
-            const event = app.events.find(e => e.id === eventId);
-            const responses = app.responses.filter(r => r.eventId === eventId);
-            
-            if (responses.length === 0) {
-                showError('No responses to export.');
-                return;
-            }
-            
-            // Create CSV header
-            const header = [...fields, 'Submitted'].map(f => `"${f}"`).join(',');
-            
-            // Create CSV rows
-            const rows = responses.map(r => {
-                const values = [
-                    ...fields.map(f => `"${(r.data[f] || '').toString().replace(/\"/g, '""')}"`),
-                    `"${new Date(r.submittedAt).toLocaleString()}"`
-                ];
-                return values.join(',');
-            });
-            
-            const csv = [header, ...rows].join('\n');
-            
-            // Download CSV
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${event.title.replace(/[^a-z0-9]/gi, '_')}_responses.csv`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            showSuccess(`Exported ${responses.length} responses!`);
-        }
-
-        function openSignupModal(eventId) {
-            const event = app.events.find(e => e.id === eventId);
-            if (!event) return;
-
-            document.getElementById('modalEventTitle').textContent = event.title;
-            const form = document.getElementById('signupForm');
-            
-            // Check if a Cadet Name field already exists (case-insensitive)
-            const hasCadetNameField = (event.fields || []).some(f => f.label.toLowerCase() === 'cadet name');
-            
-            const fields = [
-                ...(hasCadetNameField ? [] : [{ label: 'Cadet Name', type: 'text', required: true }]),
-                ...(event.fields || [])
-            ];
-
-            form.innerHTML = fields.map((f, i) => {
-                if (f.type === 'yes/no') {
-                    return `
-                        <div class="form-group">
-                            <label>${f.label}${f.required ? ' *' : ''}</label>
-                            <div style="display: flex; gap: 20px;">
-                                <label style="display: flex; align-items: center; gap: 8px;">
-                                    <input type="radio" name="${f.label}" value="Yes" ${f.required ? 'required' : ''}>
-                                    Yes
-                                </label>
-                                <label style="display: flex; align-items: center; gap: 8px;">
-                                    <input type="radio" name="${f.label}" value="No" ${f.required ? 'required' : ''}>
-                                    No
-                                </label>
-                            </div>
-                        </div>
-                    `;
-                } else if (f.type === 'textarea') {
-                    return `
-                        <div class="form-group">
-                            <label>${f.label}${f.required ? ' *' : ''}</label>
-                            <textarea name="${f.label}" ${f.required ? 'required' : ''}></textarea>
-                        </div>
-                    `;
-                } else {
-                    return `
-                        <div class="form-group">
-                            <label>${f.label}${f.required ? ' *' : ''}</label>
-                            <input type="${f.type}" name="${f.label}" ${f.required ? 'required' : ''}>
-                        </div>
-                    `;
-                }
-            }).join('');
-
-            form.innerHTML += `
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Signup</button>
-            `;
-
-            form.onsubmit = (e) => submitSignup(e, eventId);
-            document.getElementById('signupModal').classList.add('active');
-        }
-
-        function closeSignupModal() {
-            document.getElementById('signupModal').classList.remove('active');
-            document.getElementById('signupForm').reset();
-        }
-
-        async function submitSignup(e, eventId) {
-            e.preventDefault();
-            
-            const formData = new FormData(document.getElementById('signupForm'));
-            const data = Object.fromEntries(formData);
-
-            const response = {
-                id: Date.now() + Math.random(),
-                eventId: eventId,
-                data: data,
-                submittedAt: new Date().toISOString()
-            };
-
-            // CRITICAL: Fetch latest responses from GitHub to avoid overwriting other devices' submissions
-            const latestResponsesData = await fetchFromGitHub('responses.json');
-            let latestResponses = Array.isArray(latestResponsesData) ? latestResponsesData : (latestResponsesData?.responses || []);
-            
-            // Add new response to latest list
-            latestResponses.push(response);
-            
-            const saved = await saveToGitHub('responses.json', latestResponses);
-            
-            if (saved) {
-                showSuccess('Signup submitted! Thank you for registering.');
-                // Wait for GitHub CDN to propagate, then reload fresh data
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                await loadData();
-                closeSignupModal();
-            }
-        }
-
-        function addField() {
-            const label = prompt('Field label:');
-            if (!label) return;
-            
-            // Create a temporary modal for field type selection
-            const typeModal = document.createElement('div');
-            typeModal.id = 'typeSelectModal';
-            typeModal.className = 'modal';
-            typeModal.style.display = 'flex';
-            typeModal.innerHTML = `
-                <div class="modal-content" style="max-width: 400px;">
-                    <div class="modal-header">
-                        <h3>Select Field Type</h3>
-                    </div>
-                    <div style="padding: 20px;">
-                        <label style="display: block; margin-bottom: 15px;">
-                            <select id="tempFieldType" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #64748b; background: #1e293b; color: #fff;">
-                                <option value="text">Text</option>
-                                <option value="email">Email</option>
-                                <option value="phone">Phone</option>
-                                <option value="textarea">Textarea</option>
-                                <option value="yes/no">Yes/No</option>
-                            </select>
-                        </label>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px 20px;">
-                        <button class="btn btn-secondary" onclick="document.getElementById('typeSelectModal').remove()">Cancel</button>
-                        <button class="btn btn-primary" onclick="confirmFieldType('${label}')">Confirm</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(typeModal);
-        }
-        
-        function confirmFieldType(label) {
-            const type = document.getElementById('tempFieldType').value;
-            app.newEventFields.push({ label, type });
-            document.getElementById('typeSelectModal').remove();
-            renderFieldsList();
-        }
-
-        function renderFieldsList() {
-            const el = document.getElementById('fieldsList');
-            el.innerHTML = app.newEventFields.map((f, i) => `
-                <div class="field">
-                    <p><strong>${f.label}</strong> (${f.type})</p>
-                    <button type="button" class="btn btn-danger" onclick="removeField(${i})">Remove</button>
-                </div>
-            `).join('');
-        }
-
-        function removeField(index) {
-            app.newEventFields.splice(index, 1);
-            renderFieldsList();
-        }
-
-        async function createEvent(publishNow = false) {
-            const title = document.getElementById('eventTitle').value.trim();
-            const startDate = document.getElementById('eventStartDate').value;
-            const endDate = document.getElementById('eventEndDate').value;
-
-            if (!title || !startDate) {
-                showError('Please fill in title and start date.');
-                return;
-            }
-
-            const additionalInfo = document.getElementById('eventAdditionalInfo').value;
-
-            const event = {
-                id: 'evt_' + Date.now() + Math.random().toString(36).substr(2, 9),
-                title,
-                date_from: startDate,
-                date_to: endDate,
-                additionalInfo: additionalInfo,
-                location: '',
-                description: '',
-                status: 'draft',
-                max_participants: null,
-                created_at: new Date().toISOString(),
-                fields: app.newEventFields,
-                published: publishNow
-            };
-
-            // CRITICAL: Fetch latest events from GitHub to avoid overwriting other devices' changes
-            const latestEventsData = await fetchFromGitHub('events.json');
-            let latestEvents = Array.isArray(latestEventsData) ? latestEventsData : (latestEventsData?.events || []);
-            
-            console.log('Before push:', latestEvents);
-            latestEvents.push(event);
-            console.log('After push:', latestEvents);
-            const saved = await saveToGitHub('events.json', latestEvents);
-
-            if (saved) {
-                showSuccess(publishNow ? 'Event created and published!' : 'Event created as draft. Click Publish to make it visible to parents.');
-                document.getElementById('eventTitle').value = '';
-                document.getElementById('eventStartDate').value = '';
-                document.getElementById('eventEndDate').value = '';
-                document.getElementById('eventAdditionalInfo').value = '';
-                app.newEventFields = [];
-                renderFieldsList();
-                // Wait for GitHub CDN to propagate, then reload fresh data
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                console.log('Calling loadData after create...');
-                await loadData();
-                console.log('app.events after reload:', app.events);
-                renderXoView();
-            } else {
-                console.log('Save failed');
-            }
-        }
-
-        async function toggleEventPublish(eventId) {
-            // CRITICAL: Fetch latest events from GitHub to avoid overwriting other devices' changes
-            const latestEventsData = await fetchFromGitHub('events.json');
-            let latestEvents = Array.isArray(latestEventsData) ? latestEventsData : (latestEventsData?.events || []);
-            
-            const event = latestEvents.find(e => e.id === eventId);
-            if (!event) return;
-
-            event.published = !event.published;
-            const saved = await saveToGitHub('events.json', latestEvents);
-            
-            if (saved) {
-                showSuccess(event.published ? 'Event published!' : 'Event unpublished.');
-                // Wait for GitHub CDN to propagate, then reload fresh data
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                await loadData();
-                renderXoView();
-            }
-        }
-
-        function deleteEvent(eventId) {
-            console.log('Delete button clicked for event:', eventId);
-            
-            if (!confirm('Delete this event?')) return;
-
-            console.log('Confirmed delete for:', eventId);
-            
-            // Mark event for deletion
-            (async () => {
-                try {
-                    // Fetch latest events from GitHub
-                    const latestEventsData = await fetchFromGitHub('events.json');
-                    let latestEvents = Array.isArray(latestEventsData) ? latestEventsData : (latestEventsData?.events || []);
-                    
-                    console.log('Before delete, events:', latestEvents);
-                    latestEvents = latestEvents.filter(e => e.id !== eventId);
-                    console.log('After delete, events:', latestEvents);
-                    
-                    const saved = await saveToGitHub('events.json', latestEvents);
-                    console.log('Save result:', saved);
-                    
-                    if (saved) {
-                        const responsesPanel = document.getElementById('responsesPanel');
-                        if (responsesPanel) responsesPanel.remove();
-                        
-                        showSuccess('Event deleted.');
-                        await new Promise(resolve => setTimeout(resolve, 1500));
-                        await loadData();
-                    }
-                } catch (err) {
-                    console.error('Delete error:', err);
-                    alert('Error deleting event: ' + err.message);
-                }
-            })();
-        }
-
-        document.getElementById('toggleXoView').addEventListener('click', () => {
-            if (!app.isXoView) {
-                const pwd = prompt('XO Password:');
-                if (pwd !== 'Trafalgar1805') {
-                    showError('Incorrect password.');
-                    return;
-                }
-            }
-
-            app.isXoView = !app.isXoView;
-            document.getElementById('parentView').classList.toggle('hidden');
-            document.getElementById('xoView').classList.toggle('active');
-            document.getElementById('toggleXoView').textContent = app.isXoView ? '← Events View' : 'XO View';
-            
-            if (app.isXoView) {
-                app.newEventFields = [];
-                renderFieldsList();
-            }
-            
-            renderView();
-        });
-
-        document.getElementById('createDraftBtn').addEventListener('click', () => createEvent(false));
-        document.getElementById('createPublishBtn').addEventListener('click', () => createEvent(true));
-        document.getElementById('addFieldBtn').addEventListener('click', addField);
-
-        loadData();
-        
-        // Auto-refresh data every 30 seconds to sync across devices
-        setInterval(async () => {
-            await loadData();
-            // If responses panel is open, refresh it
-            if (document.getElementById('responsesPanel')) {
-                const eventIdMatch = document.querySelector('h3')?.textContent.match(/responses/i);
-                if (eventIdMatch) {
-                    // Find the event being viewed
-                    const h3Text = document.querySelector('#responsesPanel h3')?.textContent || '';
-                    const event = app.events.find(e => h3Text.includes(e.title));
-                    if (event) {
-                        const responses = app.responses.filter(r => r.eventId === event.id);
-                        if (responses.length > 0) {
-                            const table = document.querySelector('#responsesPanel table tbody');
-                            if (table) {
-                                // Check if a Cadet Name field already exists (case-insensitive)
-                                const hasCadetNameField = (event.fields || []).some(f => f.label.toLowerCase() === 'cadet name');
-                                const fields = [
-                                    ...(hasCadetNameField ? [] : ['Cadet Name']),
-                                    ...(event.fields || []).map(f => f.label)
-                                ];
-                                table.innerHTML = responses.map(r => `
-                                    <tr>
-                                        ${fields.map(f => `<td>${r.data[f] || '-'}</td>`).join('')}
-                                        <td>${new Date(r.submittedAt).toLocaleString()}</td>
-                                    </tr>
-                                `).join('');
-                                // Update response count in header
-                                const h3 = document.querySelector('#responsesPanel h3');
-                                if (h3) {
-                                    h3.textContent = h3.textContent.replace(/\(\d+\)/, `(${responses.length})`);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }, 30000);
-    </script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

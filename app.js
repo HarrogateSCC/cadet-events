@@ -1,0 +1,943 @@
+// =============================================
+//  Sea Cadets Portal — Application Logic
+// =============================================
+
+(function () {
+  'use strict';
+
+  // ---- Supabase client ----
+  let sb = null;
+
+  function initSupabase() {
+    if (
+      typeof SUPABASE_URL === 'undefined' ||
+      SUPABASE_URL === 'YOUR_SUPABASE_URL' ||
+      typeof SUPABASE_ANON === 'undefined' ||
+      SUPABASE_ANON === 'YOUR_SUPABASE_ANON_KEY'
+    ) {
+      document.getElementById('setup-banner').classList.remove('hidden');
+      return false;
+    }
+    const { createClient } = supabase;
+    sb = createClient(SUPABASE_URL, SUPABASE_ANON, {
+      realtime: { params: { eventsPerSecond: 10 } }
+    });
+    return true;
+  }
+
+  // ---- State ----
+  let currentView = 'parent';
+  let formFields = [];            // form builder state
+  let editingEventId = null;      // null = creating new
+  let deleteTargetId = null;
+  let currentSubmissionsEvent = null;
+  let realtimeChannel = null;
+  let xoEventsCache = [];
+  let parentEventsCache = [];
+
+  // =============================================
+  //  VIEW SWITCHING
+  // =============================================
+
+  function showParentView() {
+    currentView = 'parent';
+    document.getElementById('view-parent').classList.remove('hidden');
+    document.getElementById('view-xo').classList.add('hidden');
+    document.getElementById('btn-parent-view').classList.add('bg-white/20');
+    document.getElementById('btn-xo-view').classList.remove('bg-white/20');
+    loadParentEvents();
+  }
+
+  function showXOView() {
+    currentView = 'xo';
+    document.getElementById('view-parent').classList.add('hidden');
+    document.getElementById('view-xo').classList.remove('hidden');
+    document.getElementById('btn-xo-view').classList.add('bg-white/20');
+    document.getElementById('btn-parent-view').classList.remove('bg-white/20');
+    checkAuth();
+  }
+
+  async function checkAuth() {
+    if (!sb) return;
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      showDashboard();
+    } else {
+      showLoginForm();
+    }
+  }
+
+  function showLoginForm() {
+    document.getElementById('xo-login').classList.remove('hidden');
+    document.getElementById('xo-dashboard').classList.add('hidden');
+    document.getElementById('btn-logout').classList.add('hidden');
+  }
+
+  function showDashboard() {
+    document.getElementById('xo-login').classList.add('hidden');
+    document.getElementById('xo-dashboard').classList.remove('hidden');
+    document.getElementById('btn-logout').classList.remove('hidden');
+    loadXOEvents();
+    loadStats();
+  }
+
+  // =============================================
+  //  AUTHENTICATION
+  // =============================================
+
+  async function login(e) {
+    e.preventDefault();
+    if (!sb) return;
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl    = document.getElementById('login-error');
+    errEl.classList.add('hidden');
+
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      errEl.textContent = error.message;
+      errEl.classList.remove('hidden');
+    } else {
+      showDashboard();
+    }
+  }
+
+  async function logout() {
+    if (sb) await sb.auth.signOut();
+    showLoginForm();
+    showParentView();
+  }
+
+  // =============================================
+  //  PARENT: LOAD EVENTS
+  // =============================================
+
+  async function loadParentEvents() {
+    const listEl    = document.getElementById('events-list');
+    const loadEl    = document.getElementById('events-loading');
+    const emptyEl   = document.getElementById('events-empty');
+
+    if (!sb) {
+      loadEl.classList.add('hidden');
+      emptyEl.classList.remove('hidden');
+      emptyEl.textContent = 'Portal not yet configured. Ask your XO to set up Supabase.';
+      return;
+    }
+
+    loadEl.classList.remove('hidden');
+    listEl.innerHTML = '';
+    emptyEl.classList.add('hidden');
+
+    const now = new Date().toISOString();
+    const { data, error } = await sb
+      .from('events')
+      .select('*')
+      .eq('is_active', true)
+      .gte('event_date', now)
+      .order('event_date', { ascending: true });
+
+    loadEl.classList.add('hidden');
+
+    if (error) {
+      emptyEl.textContent = 'Could not load events. Please try again later.';
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    parentEventsCache = data || [];
+
+    if (parentEventsCache.length === 0) {
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    parentEventsCache.forEach(ev => {
+      listEl.appendChild(buildEventCard(ev));
+    });
+
+    // Subscribe to real-time inserts
+    subscribeToEvents();
+  }
+
+  function subscribeToEvents() {
+    if (realtimeChannel) {
+      sb.removeChannel(realtimeChannel);
+    }
+    realtimeChannel = sb
+      .channel('public-events')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'events',
+        filter: 'is_active=eq.true'
+      }, payload => {
+        const ev = payload.new;
+        const now = new Date();
+        if (new Date(ev.event_date) >= now) {
+          prependEventCard(ev);
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'events'
+      }, () => {
+        // Reload on update
+        loadParentEvents();
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'events'
+      }, payload => {
+        const card = document.querySelector(`[data-event-id="${payload.old.id}"]`);
+        if (card) card.remove();
+        checkParentEmpty();
+      })
+      .subscribe();
+  }
+
+  function checkParentEmpty() {
+    const listEl  = document.getElementById('events-list');
+    const emptyEl = document.getElementById('events-empty');
+    if (listEl.children.length === 0) {
+      emptyEl.classList.remove('hidden');
+    }
+  }
+
+  function prependEventCard(ev) {
+    const listEl  = document.getElementById('events-list');
+    const emptyEl = document.getElementById('events-empty');
+    emptyEl.classList.add('hidden');
+    const card = buildEventCard(ev);
+    card.classList.add('new-event-pulse');
+    // Insert in date order
+    const cards = Array.from(listEl.querySelectorAll('.event-card'));
+    const insertBefore = cards.find(c => {
+      const d = c.dataset.eventDate;
+      return d && d > ev.event_date;
+    });
+    if (insertBefore) {
+      listEl.insertBefore(card, insertBefore);
+    } else {
+      listEl.appendChild(card);
+    }
+  }
+
+  function buildEventCard(ev) {
+    const div = document.createElement('div');
+    div.className = 'event-card fade-in';
+    div.dataset.eventId = ev.id;
+    div.dataset.eventDate = ev.event_date;
+    div.onclick = () => openEventModal(ev.id);
+
+    const dateStr = formatDate(ev.event_date);
+    const dayStr  = formatDay(ev.event_date);
+
+    div.innerHTML = `
+      <div class="event-card-header">
+        <div class="event-card-badge">${dayStr}</div>
+        <h3 class="text-lg font-bold leading-snug">${escHtml(ev.title)}</h3>
+        ${ev.location ? `<p class="text-white/70 text-sm mt-1 flex items-center gap-1">
+          <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          ${escHtml(ev.location)}</p>` : ''}
+      </div>
+      <div class="event-card-body">
+        <p class="text-gray-500 text-sm">${dateStr}</p>
+        ${ev.description ? `<p class="text-gray-700 text-sm mt-2 line-clamp-2">${escHtml(ev.description)}</p>` : ''}
+        <button class="mt-3 text-sm font-semibold text-navy hover:underline">Sign Up →</button>
+      </div>
+    `;
+    return div;
+  }
+
+  // =============================================
+  //  PARENT: EVENT MODAL + SIGN-UP FORM
+  // =============================================
+
+  async function openEventModal(eventId) {
+    if (!sb) return;
+    const { data: ev } = await sb.from('events').select('*').eq('id', eventId).single();
+    if (!ev) return;
+
+    document.getElementById('modal-event-title').textContent = ev.title;
+
+    const dateSpan = document.getElementById('modal-event-date');
+    dateSpan.innerHTML = `<svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 4h10M5 11h14M5 19h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> ${formatDateLong(ev.event_date)}`;
+
+    const locSpan = document.getElementById('modal-event-location');
+    if (ev.location) {
+      locSpan.innerHTML = `<svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg> ${escHtml(ev.location)}`;
+      locSpan.style.display = '';
+    } else {
+      locSpan.style.display = 'none';
+    }
+
+    document.getElementById('modal-event-desc').textContent = ev.description || '';
+
+    // Build dynamic form
+    const fieldsContainer = document.getElementById('modal-form-fields');
+    fieldsContainer.innerHTML = '';
+    document.getElementById('modal-form-success').classList.add('hidden');
+    document.getElementById('modal-form-container').classList.remove('hidden');
+    document.getElementById('modal-form-error').classList.add('hidden');
+
+    const schema = ev.form_schema || [];
+    if (schema.length === 0) {
+      fieldsContainer.innerHTML = '<p class="text-sm text-gray-500 italic">No form fields — just click Submit to sign up.</p>';
+    } else {
+      schema.forEach(field => {
+        fieldsContainer.appendChild(renderFormField(field));
+      });
+    }
+
+    // Store event id for submission
+    document.getElementById('modal-signup-form').dataset.eventId = eventId;
+
+    openModal('modal-event');
+  }
+
+  function renderFormField(field) {
+    const wrapper = document.createElement('div');
+    const labelHtml = `<label class="block text-sm font-medium text-gray-700 mb-1">
+      ${escHtml(field.label)}${field.required ? ' <span class="text-red-500">*</span>' : ''}
+    </label>`;
+
+    let inputHtml = '';
+    const baseClass = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy';
+
+    switch (field.type) {
+      case 'textarea':
+        inputHtml = `<textarea name="${field.id}" ${field.required ? 'required' : ''} rows="3"
+          placeholder="${escHtml(field.placeholder || '')}"
+          class="${baseClass} resize-none"></textarea>`;
+        break;
+      case 'checkbox':
+        wrapper.innerHTML = `<div class="flex items-center gap-2">
+          <input type="checkbox" name="${field.id}" id="f-${field.id}"
+            class="h-4 w-4 rounded border-gray-300 text-navy focus:ring-navy" ${field.required ? 'required' : ''} />
+          <label for="f-${field.id}" class="text-sm text-gray-700">${escHtml(field.label)}${field.required ? ' <span class="text-red-500">*</span>' : ''}</label>
+        </div>`;
+        return wrapper;
+      case 'dropdown':
+        const opts = (field.options || '').split('\n').filter(o => o.trim());
+        inputHtml = `<select name="${field.id}" ${field.required ? 'required' : ''} class="${baseClass}">
+          <option value="">— Select —</option>
+          ${opts.map(o => `<option value="${escHtml(o.trim())}">${escHtml(o.trim())}</option>`).join('')}
+        </select>`;
+        break;
+      default:
+        inputHtml = `<input type="${field.type}" name="${field.id}" ${field.required ? 'required' : ''}
+          placeholder="${escHtml(field.placeholder || '')}"
+          class="${baseClass}" />`;
+    }
+    wrapper.innerHTML = labelHtml + inputHtml;
+    return wrapper;
+  }
+
+  async function submitSignup(e) {
+    e.preventDefault();
+    if (!sb) return;
+
+    const form    = e.target;
+    const eventId = form.dataset.eventId;
+    const errEl   = document.getElementById('modal-form-error');
+    errEl.classList.add('hidden');
+
+    // Collect form data
+    const formData = new FormData(form);
+    const data = {};
+    for (const [key, val] of formData.entries()) {
+      data[key] = val;
+    }
+    // Handle checkboxes (unchecked don't appear in FormData)
+    form.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      data[cb.name] = cb.checked ? 'Yes' : 'No';
+    });
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+
+    const { error } = await sb.from('submissions').insert({
+      event_id: eventId,
+      data: data,
+      submitted_at: new Date().toISOString()
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit Sign-up';
+
+    if (error) {
+      errEl.textContent = 'Failed to submit. Please try again.';
+      errEl.classList.remove('hidden');
+    } else {
+      document.getElementById('modal-form-container').classList.add('hidden');
+      document.getElementById('modal-form-success').classList.remove('hidden');
+    }
+  }
+
+  // =============================================
+  //  XO: LOAD EVENTS TABLE
+  // =============================================
+
+  async function loadXOEvents() {
+    if (!sb) return;
+    const loadEl  = document.getElementById('xo-events-loading');
+    const emptyEl = document.getElementById('xo-events-empty');
+    const tableEl = document.getElementById('xo-events-table');
+    const tbody   = document.getElementById('xo-events-tbody');
+
+    loadEl.classList.remove('hidden');
+    emptyEl.classList.add('hidden');
+    tableEl.classList.add('hidden');
+    tbody.innerHTML = '';
+
+    const { data, error } = await sb
+      .from('events')
+      .select('id, title, event_date, location, is_active')
+      .order('event_date', { ascending: true });
+
+    loadEl.classList.add('hidden');
+    if (error || !data) { emptyEl.classList.remove('hidden'); return; }
+
+    xoEventsCache = data;
+
+    if (data.length === 0) { emptyEl.classList.remove('hidden'); return; }
+
+    // Count submissions per event
+    const ids = data.map(e => e.id);
+    const { data: subCounts } = await sb
+      .from('submissions')
+      .select('event_id')
+      .in('event_id', ids);
+
+    const countMap = {};
+    (subCounts || []).forEach(s => {
+      countMap[s.event_id] = (countMap[s.event_id] || 0) + 1;
+    });
+
+    data.forEach(ev => {
+      const tr = document.createElement('tr');
+      const isPast = new Date(ev.event_date) < new Date();
+      tr.innerHTML = `
+        <td class="px-6 py-4">
+          <div class="font-medium text-gray-800">${escHtml(ev.title)}</div>
+          ${!ev.is_active ? '<span class="text-xs text-gray-400">(hidden)</span>' : ''}
+          ${isPast ? '<span class="text-xs text-amber-500">(past)</span>' : ''}
+        </td>
+        <td class="px-6 py-4 text-gray-600">${formatDate(ev.event_date)}</td>
+        <td class="px-6 py-4 text-gray-600">${escHtml(ev.location || '—')}</td>
+        <td class="px-6 py-4 text-center">
+          <button onclick="App.openSubmissions('${ev.id}')"
+            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
+              ${(countMap[ev.id] || 0) > 0 ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}
+              transition">
+            ${countMap[ev.id] || 0} sign-up${(countMap[ev.id] || 0) !== 1 ? 's' : ''}
+          </button>
+        </td>
+        <td class="px-6 py-4 text-right">
+          <div class="flex items-center justify-end gap-2">
+            <button onclick="App.openEditEvent('${ev.id}')"
+              class="p-1.5 text-gray-400 hover:text-navy hover:bg-blue-50 rounded-lg transition" title="Edit">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.172-8.172z"/>
+              </svg>
+            </button>
+            <button onclick="App.promptDelete('${ev.id}')"
+              class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tableEl.classList.remove('hidden');
+  }
+
+  async function loadStats() {
+    if (!sb) return;
+    const now = new Date().toISOString();
+    const { data: allEvents  } = await sb.from('events').select('id, event_date');
+    const { data: allSubs    } = await sb.from('submissions').select('id');
+
+    const total    = (allEvents || []).length;
+    const upcoming = (allEvents || []).filter(e => e.event_date >= now).length;
+    const subs     = (allSubs   || []).length;
+
+    document.getElementById('stat-total').textContent    = total;
+    document.getElementById('stat-upcoming').textContent = upcoming;
+    document.getElementById('stat-signups').textContent  = subs;
+  }
+
+  // =============================================
+  //  XO: CREATE / EDIT EVENT
+  // =============================================
+
+  function openCreateEvent() {
+    editingEventId = null;
+    formFields = [];
+    document.getElementById('create-event-title').textContent = 'New Event';
+    document.getElementById('save-event-btn').textContent     = 'Create Event';
+    document.getElementById('ce-title').value       = '';
+    document.getElementById('ce-date').value        = '';
+    document.getElementById('ce-location').value    = '';
+    document.getElementById('ce-description').value = '';
+    document.getElementById('create-event-error').classList.add('hidden');
+    renderFormBuilder();
+    openModal('modal-create-event');
+  }
+
+  async function openEditEvent(eventId) {
+    if (!sb) return;
+    const { data: ev } = await sb.from('events').select('*').eq('id', eventId).single();
+    if (!ev) return;
+
+    editingEventId = eventId;
+    formFields = (ev.form_schema || []).map(f => ({ ...f }));
+
+    document.getElementById('create-event-title').textContent = 'Edit Event';
+    document.getElementById('save-event-btn').textContent     = 'Save Changes';
+    document.getElementById('ce-title').value       = ev.title || '';
+    document.getElementById('ce-location').value    = ev.location || '';
+    document.getElementById('ce-description').value = ev.description || '';
+    document.getElementById('create-event-error').classList.add('hidden');
+
+    // Convert UTC to local datetime-local format
+    const d = new Date(ev.event_date);
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 16);
+    document.getElementById('ce-date').value = local;
+
+    renderFormBuilder();
+    openModal('modal-create-event');
+  }
+
+  async function saveEvent(e) {
+    e.preventDefault();
+    if (!sb) return;
+
+    const btn    = document.getElementById('save-event-btn');
+    const errEl  = document.getElementById('create-event-error');
+    errEl.classList.add('hidden');
+
+    const payload = {
+      title:       document.getElementById('ce-title').value.trim(),
+      event_date:  new Date(document.getElementById('ce-date').value).toISOString(),
+      location:    document.getElementById('ce-location').value.trim() || null,
+      description: document.getElementById('ce-description').value.trim() || null,
+      form_schema: formFields,
+      is_active:   true
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    let error;
+    if (editingEventId) {
+      ({ error } = await sb.from('events').update(payload).eq('id', editingEventId));
+    } else {
+      ({ error } = await sb.from('events').insert(payload));
+    }
+
+    btn.disabled = false;
+    btn.textContent = editingEventId ? 'Save Changes' : 'Create Event';
+
+    if (error) {
+      errEl.textContent = error.message;
+      errEl.classList.remove('hidden');
+    } else {
+      closeModal('modal-create-event');
+      loadXOEvents();
+      loadStats();
+    }
+  }
+
+  // =============================================
+  //  FORM BUILDER
+  // =============================================
+
+  let fieldIdCounter = 0;
+
+  function addFormField(type) {
+    document.getElementById('field-type-menu').classList.add('hidden');
+    const id = 'field_' + (++fieldIdCounter) + '_' + Date.now();
+    const defaults = {
+      text:      { label: 'Short Text',    placeholder: '', required: false, options: '' },
+      textarea:  { label: 'Long Text',     placeholder: '', required: false, options: '' },
+      number:    { label: 'Number',        placeholder: '', required: false, options: '' },
+      email:     { label: 'Email Address', placeholder: '', required: false, options: '' },
+      tel:       { label: 'Phone Number',  placeholder: '', required: false, options: '' },
+      date:      { label: 'Date',          placeholder: '', required: false, options: '' },
+      checkbox:  { label: 'Checkbox',      placeholder: '', required: false, options: '' },
+      dropdown:  { label: 'Dropdown',      placeholder: '', required: false, options: 'Option 1\nOption 2\nOption 3' },
+    };
+    formFields.push({ id, type, ...defaults[type] });
+    renderFormBuilder();
+  }
+
+  function removeFormField(fieldId) {
+    formFields = formFields.filter(f => f.id !== fieldId);
+    renderFormBuilder();
+  }
+
+  function updateField(fieldId, key, value) {
+    const field = formFields.find(f => f.id === fieldId);
+    if (field) field[key] = value;
+  }
+
+  function renderFormBuilder() {
+    const container = document.getElementById('form-builder-fields');
+    const emptyEl   = document.getElementById('form-builder-empty');
+    container.innerHTML = '';
+
+    if (formFields.length === 0) {
+      container.appendChild(emptyEl);
+      emptyEl.style.display = '';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    formFields.forEach((field, index) => {
+      const card = document.createElement('div');
+      card.className = 'field-card';
+      card.draggable = true;
+      card.dataset.fieldId = field.id;
+
+      const typeLabel = {
+        text: 'Short Text', textarea: 'Long Text', number: 'Number',
+        email: 'Email', tel: 'Phone', date: 'Date',
+        checkbox: 'Checkbox', dropdown: 'Dropdown'
+      }[field.type] || field.type;
+
+      card.innerHTML = `
+        <div class="flex items-start gap-3">
+          <div class="field-card-handle mt-1 select-none" title="Drag to reorder">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
+            </svg>
+          </div>
+          <div class="flex-1 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wide text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full">${typeLabel}</span>
+            </div>
+            <input type="text" value="${escHtml(field.label)}"
+              oninput="App.updateField('${field.id}','label',this.value)"
+              placeholder="Field label"
+              class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
+            ${field.type !== 'checkbox' && field.type !== 'dropdown' && field.type !== 'date' ? `
+            <input type="text" value="${escHtml(field.placeholder || '')}"
+              oninput="App.updateField('${field.id}','placeholder',this.value)"
+              placeholder="Placeholder text (optional)"
+              class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
+            ` : ''}
+            ${field.type === 'dropdown' ? `
+            <textarea
+              oninput="App.updateField('${field.id}','options',this.value)"
+              placeholder="One option per line"
+              rows="3"
+              class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy resize-none">${escHtml(field.options || '')}</textarea>
+            ` : ''}
+            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input type="checkbox" ${field.required ? 'checked' : ''}
+                onchange="App.updateField('${field.id}','required',this.checked)"
+                class="h-4 w-4 rounded border-gray-300 text-navy focus:ring-navy" />
+              Required field
+            </label>
+          </div>
+          <button type="button" onclick="App.removeFormField('${field.id}')"
+            class="text-gray-300 hover:text-red-500 transition mt-0.5" title="Remove field">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      `;
+
+      // Drag-and-drop reordering
+      card.addEventListener('dragstart', onDragStart);
+      card.addEventListener('dragover',  onDragOver);
+      card.addEventListener('dragleave', onDragLeave);
+      card.addEventListener('drop',      onDrop);
+      card.addEventListener('dragend',   onDragEnd);
+
+      container.appendChild(card);
+    });
+  }
+
+  // ---- Drag & Drop state ----
+  let dragSrcId = null;
+
+  function onDragStart(e) {
+    dragSrcId = e.currentTarget.dataset.fieldId;
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.currentTarget.classList.add('drag-over');
+  }
+  function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+  function onDragEnd(e)   { e.currentTarget.classList.remove('dragging'); }
+  function onDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    const targetId = e.currentTarget.dataset.fieldId;
+    if (!dragSrcId || dragSrcId === targetId) return;
+    const srcIdx = formFields.findIndex(f => f.id === dragSrcId);
+    const tgtIdx = formFields.findIndex(f => f.id === targetId);
+    if (srcIdx === -1 || tgtIdx === -1) return;
+    const [moved] = formFields.splice(srcIdx, 1);
+    formFields.splice(tgtIdx, 0, moved);
+    renderFormBuilder();
+    dragSrcId = null;
+  }
+
+  function toggleFieldMenu() {
+    document.getElementById('field-type-menu').classList.toggle('hidden');
+  }
+
+  // Close menu on outside click
+  document.addEventListener('click', (e) => {
+    const btn  = document.getElementById('add-field-btn');
+    const menu = document.getElementById('field-type-menu');
+    if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+      menu.classList.add('hidden');
+    }
+  });
+
+  // =============================================
+  //  XO: SUBMISSIONS
+  // =============================================
+
+  async function openSubmissions(eventId) {
+    if (!sb) return;
+    const ev = xoEventsCache.find(e => e.id === eventId);
+    document.getElementById('subs-event-title').textContent = ev ? ev.title : 'Event';
+    currentSubmissionsEvent = eventId;
+
+    const loadEl    = document.getElementById('subs-loading');
+    const emptyEl   = document.getElementById('subs-empty');
+    const tableWrap = document.getElementById('subs-table-wrap');
+    const thead     = document.getElementById('subs-thead');
+    const tbody     = document.getElementById('subs-tbody');
+
+    loadEl.style.display = '';
+    emptyEl.classList.add('hidden');
+    tableWrap.classList.add('hidden');
+
+    openModal('modal-submissions');
+
+    const { data: subs } = await sb
+      .from('submissions')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('submitted_at', { ascending: false });
+
+    loadEl.style.display = 'none';
+
+    if (!subs || subs.length === 0) {
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    // Build column headers from first submission
+    const allKeys = new Set();
+    subs.forEach(s => Object.keys(s.data || {}).forEach(k => allKeys.add(k)));
+    const keys = Array.from(allKeys);
+
+    // Get field labels from event schema for nicer headers
+    let labelMap = {};
+    const { data: evFull } = await sb.from('events').select('form_schema').eq('id', eventId).single();
+    if (evFull && evFull.form_schema) {
+      evFull.form_schema.forEach(f => { labelMap[f.id] = f.label; });
+    }
+
+    thead.innerHTML = `<tr>
+      <th class="px-4 py-3 text-left">#</th>
+      ${keys.map(k => `<th class="px-4 py-3 text-left">${escHtml(labelMap[k] || k)}</th>`).join('')}
+      <th class="px-4 py-3 text-left">Submitted</th>
+    </tr>`;
+
+    tbody.innerHTML = '';
+    subs.forEach((sub, i) => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50';
+      tr.innerHTML = `
+        <td class="px-4 py-3 text-gray-400 text-xs">${i + 1}</td>
+        ${keys.map(k => `<td class="px-4 py-3 text-gray-700 text-sm">${escHtml(sub.data[k] ?? '—')}</td>`).join('')}
+        <td class="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">${formatDateLong(sub.submitted_at)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tableWrap.classList.remove('hidden');
+
+    // Store for export
+    tableWrap.dataset.keys = JSON.stringify(keys);
+    tableWrap.dataset.subs = JSON.stringify(subs);
+    tableWrap.dataset.labelMap = JSON.stringify(labelMap);
+  }
+
+  function exportSubmissions() {
+    const tableWrap = document.getElementById('subs-table-wrap');
+    const keys      = JSON.parse(tableWrap.dataset.keys || '[]');
+    const subs      = JSON.parse(tableWrap.dataset.subs || '[]');
+    const labelMap  = JSON.parse(tableWrap.dataset.labelMap || '{}');
+
+    const headers = [...keys.map(k => labelMap[k] || k), 'Submitted At'];
+    const rows    = subs.map(s => [
+      ...keys.map(k => `"${(s.data[k] || '').toString().replace(/"/g, '""')}"`),
+      `"${formatDateLong(s.submitted_at)}"`
+    ]);
+
+    const csv  = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `signups-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // =============================================
+  //  XO: DELETE
+  // =============================================
+
+  function promptDelete(eventId) {
+    deleteTargetId = eventId;
+    openModal('modal-delete');
+  }
+
+  async function confirmDelete() {
+    if (!sb || !deleteTargetId) return;
+    const btn = document.getElementById('confirm-delete-btn');
+    btn.disabled = true;
+    btn.textContent = 'Deleting…';
+
+    const { error } = await sb.from('events').delete().eq('id', deleteTargetId);
+
+    btn.disabled = false;
+    btn.textContent = 'Delete';
+
+    if (!error) {
+      closeModal('modal-delete');
+      deleteTargetId = null;
+      loadXOEvents();
+      loadStats();
+    }
+  }
+
+  // =============================================
+  //  MODAL HELPERS
+  // =============================================
+
+  function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
+  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+  // Close modals on backdrop click
+  document.querySelectorAll('[id^="modal-"]').forEach(modal => {
+    modal.addEventListener('click', function (e) {
+      if (e.target === this) closeModal(this.id);
+    });
+  });
+
+  // Escape key closes modals
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
+    }
+  });
+
+  // =============================================
+  //  DATE HELPERS
+  // =============================================
+
+  function formatDate(iso) {
+    return new Date(iso).toLocaleDateString('en-GB', {
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+  function formatDateLong(iso) {
+    return new Date(iso).toLocaleDateString('en-GB', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+  function formatDay(iso) {
+    return new Date(iso).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  // =============================================
+  //  UTILS
+  // =============================================
+
+  function escHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // =============================================
+  //  INIT
+  // =============================================
+
+  function init() {
+    const ready = initSupabase();
+    if (ready) {
+      // Listen for auth changes
+      sb.auth.onAuthStateChange((event, session) => {
+        if (currentView === 'xo') {
+          if (session) showDashboard();
+          else showLoginForm();
+        }
+        if (session) {
+          document.getElementById('btn-logout').classList.remove('hidden');
+        } else {
+          document.getElementById('btn-logout').classList.add('hidden');
+        }
+      });
+    }
+    showParentView();
+  }
+
+  // =============================================
+  //  PUBLIC API
+  // =============================================
+
+  window.App = {
+    showParentView,
+    showXOView,
+    login,
+    logout,
+    openCreateEvent,
+    openEditEvent,
+    saveEvent,
+    openEventModal,
+    submitSignup,
+    openSubmissions,
+    exportSubmissions,
+    promptDelete,
+    confirmDelete,
+    closeModal,
+    addFormField,
+    removeFormField,
+    updateField,
+    renderFormBuilder,
+    toggleFieldMenu,
+  };
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
