@@ -228,12 +228,12 @@
     div.dataset.eventDate = ev.event_date;
     div.onclick = () => openEventModal(ev.id);
 
-    const dateStr = formatDate(ev.event_date);
+    const dateStr = formatDateRange(ev.event_date, ev.event_date_end);
     const dayStr  = formatDay(ev.event_date);
 
     div.innerHTML = `
       <div class="event-card-header">
-        <div class="event-card-badge">${dayStr}</div>
+        <div class="event-card-badge">${dayStr}${ev.event_date_end ? ' — ' + formatDay(ev.event_date_end) : ''}</div>
         <h3 class="text-lg font-bold leading-snug">${escHtml(ev.title)}</h3>
         ${ev.location ? `<p class="text-white/70 text-sm mt-1 flex items-center gap-1">
           <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -262,7 +262,7 @@
     document.getElementById('modal-event-title').textContent = ev.title;
 
     const dateSpan = document.getElementById('modal-event-date');
-    dateSpan.innerHTML = `<svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 4h10M5 11h14M5 19h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> ${formatDateLong(ev.event_date)}`;
+    dateSpan.innerHTML = `<svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 4h10M5 11h14M5 19h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> ${formatDateRangeLong(ev.event_date, ev.event_date_end)}`;
 
     const locSpan = document.getElementById('modal-event-location');
     if (ev.location) {
@@ -394,7 +394,7 @@
 
     const { data, error } = await sb
       .from('events')
-      .select('id, title, event_date, location, is_active')
+      .select('id, title, event_date, event_date_end, location, is_active')
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
@@ -425,7 +425,7 @@
           ${!ev.is_active ? '<span class="text-xs text-gray-400">(hidden)</span>' : ''}
           ${isPast ? '<span class="text-xs text-amber-500">(past)</span>' : ''}
         </td>
-        <td class="px-6 py-4 text-gray-600">${formatDate(ev.event_date)}</td>
+        <td class="px-6 py-4 text-gray-600">${formatDateRange(ev.event_date, ev.event_date_end)}</td>
         <td class="px-6 py-4 text-gray-600">${escHtml(ev.location || '—')}</td>
         <td class="px-6 py-4 text-center">
           <button onclick="App.openSubmissions('${ev.id}')"
@@ -479,11 +479,17 @@
 
   function openCreateEvent() {
     editingEventId = null;
-    formFields = [];
+    // Pre-load Cadet Name as a default required field
+    const cadetNameId = 'field_cadet_name';
+    formFields = [{
+      id: cadetNameId, type: 'text', label: 'Cadet Name',
+      placeholder: 'Enter cadet\'s full name', required: true, options: ''
+    }];
     document.getElementById('create-event-title').textContent = 'New Event';
     document.getElementById('save-event-btn').textContent     = 'Create Event';
     document.getElementById('ce-title').value       = '';
     document.getElementById('ce-date').value        = '';
+    document.getElementById('ce-date-end').value    = '';
     document.getElementById('ce-location').value    = '';
     document.getElementById('ce-description').value = '';
     document.getElementById('create-event-error').classList.add('hidden');
@@ -506,11 +512,9 @@
     document.getElementById('ce-description').value = ev.description || '';
     document.getElementById('create-event-error').classList.add('hidden');
 
-    // Convert UTC to local datetime-local format
-    const d = new Date(ev.event_date);
-    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-      .toISOString().slice(0, 16);
-    document.getElementById('ce-date').value = local;
+    // Set date fields (date only, no time)
+    document.getElementById('ce-date').value = ev.event_date ? ev.event_date.slice(0, 10) : '';
+    document.getElementById('ce-date-end').value = ev.event_date_end ? ev.event_date_end.slice(0, 10) : '';
 
     renderFormBuilder();
     openModal('modal-create-event');
@@ -524,13 +528,16 @@
     const errEl  = document.getElementById('create-event-error');
     errEl.classList.add('hidden');
 
+    const fromDate = document.getElementById('ce-date').value;
+    const toDate   = document.getElementById('ce-date-end').value;
     const payload = {
-      title:       document.getElementById('ce-title').value.trim(),
-      event_date:  new Date(document.getElementById('ce-date').value).toISOString(),
-      location:    document.getElementById('ce-location').value.trim() || null,
-      description: document.getElementById('ce-description').value.trim() || null,
-      form_schema: formFields,
-      is_active:   true
+      title:          document.getElementById('ce-title').value.trim(),
+      event_date:     fromDate ? new Date(fromDate + 'T00:00:00').toISOString() : null,
+      event_date_end: toDate   ? new Date(toDate   + 'T00:00:00').toISOString() : null,
+      location:       document.getElementById('ce-location').value.trim() || null,
+      description:    document.getElementById('ce-description').value.trim() || null,
+      form_schema:    formFields,
+      is_active:      true
     };
 
     btn.disabled = true;
@@ -859,19 +866,32 @@
   // =============================================
 
   function formatDate(iso) {
+    if (!iso) return '';
     return new Date(iso).toLocaleDateString('en-GB', {
-      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
     });
   }
   function formatDateLong(iso) {
+    if (!iso) return '';
     return new Date(iso).toLocaleDateString('en-GB', {
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
   }
   function formatDay(iso) {
+    if (!iso) return '';
     return new Date(iso).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  function formatDateRange(fromIso, toIso) {
+    const from = formatDate(fromIso);
+    if (!toIso) return from;
+    const to = formatDate(toIso);
+    return from + ' — ' + to;
+  }
+  function formatDateRangeLong(fromIso, toIso) {
+    const from = formatDateLong(fromIso);
+    if (!toIso) return from;
+    const to = formatDateLong(toIso);
+    return from + ' — ' + to;
   }
 
   // =============================================
@@ -892,21 +912,7 @@
   // =============================================
 
   function init() {
-    const ready = initSupabase();
-    if (ready) {
-      // Listen for auth changes
-      sb.auth.onAuthStateChange((event, session) => {
-        if (currentView === 'xo') {
-          if (session) showDashboard();
-          else showLoginForm();
-        }
-        if (session) {
-          document.getElementById('btn-logout').classList.remove('hidden');
-        } else {
-          document.getElementById('btn-logout').classList.add('hidden');
-        }
-      });
-    }
+    initSupabase();
     showParentView();
   }
 
