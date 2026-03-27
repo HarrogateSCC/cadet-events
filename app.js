@@ -242,8 +242,7 @@
           ${escHtml(ev.location)}</p>` : ''}
       </div>
       <div class="event-card-body">
-        <p class="text-gray-500 text-sm">${dateStr}</p>
-        ${ev.description ? `<p class="text-gray-700 text-sm mt-2 line-clamp-2">${escHtml(ev.description)}</p>` : ''}
+        ${ev.description ? `<p class="text-gray-700 text-sm line-clamp-2">${escHtml(ev.description)}</p>` : ''}
         <button class="mt-3 text-sm font-semibold text-navy hover:underline">Sign Up →</button>
       </div>
     `;
@@ -312,12 +311,12 @@
           class="${baseClass} resize-none"></textarea>`;
         break;
       case 'checkbox':
-        wrapper.innerHTML = `<div class="flex items-center gap-2">
-          <input type="checkbox" name="${field.id}" id="f-${field.id}"
-            class="h-4 w-4 rounded border-gray-300 text-navy focus:ring-navy" ${field.required ? 'required' : ''} />
-          <label for="f-${field.id}" class="text-sm text-gray-700">${escHtml(field.label)}${field.required ? ' <span class="text-red-500">*</span>' : ''}</label>
-        </div>`;
-        return wrapper;
+        inputHtml = `<select name="${field.id}" ${field.required ? 'required' : ''} class="${baseClass}">
+          <option value="">— Select —</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>`;
+        break;
       case 'dropdown':
         const opts = (field.options || '').split('\n').filter(o => o.trim());
         inputHtml = `<select name="${field.id}" ${field.required ? 'required' : ''} class="${baseClass}">
@@ -618,7 +617,7 @@
       const typeLabel = {
         text: 'Short Text', textarea: 'Long Text', number: 'Number',
         email: 'Email', tel: 'Phone', date: 'Date',
-        checkbox: 'Checkbox', dropdown: 'Dropdown'
+        checkbox: 'Yes / No', dropdown: 'Dropdown'
       }[field.type] || field.type;
 
       card.innerHTML = `
