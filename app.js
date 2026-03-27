@@ -260,6 +260,7 @@
     div.innerHTML = `
       <div class="event-card-header">
         <div class="event-card-badge">${dayStr}${ev.event_date_end ? ' — ' + formatDay(ev.event_date_end) : ''}</div>
+        ${formatTimeRange(ev.from_time, ev.to_time) ? `<p class="text-white/60 text-xs mt-1 flex items-center gap-1"><svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${formatTimeRange(ev.from_time, ev.to_time)}</p>` : ''}
         <h3 class="text-xl font-bold leading-snug tracking-wide" style="font-family:'Source Sans 3',sans-serif; font-size:1.35rem;">${escHtml(ev.title)}</h3>
         ${ev.location ? `<p class="text-white/70 text-sm mt-1 flex items-center gap-1">
           <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -292,7 +293,8 @@
     document.getElementById('modal-event-title').textContent = ev.title;
 
     const dateSpan = document.getElementById('modal-event-date');
-    dateSpan.innerHTML = `<svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 4h10M5 11h14M5 19h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> ${formatDateRangeLong(ev.event_date, ev.event_date_end)}`;
+    const _timeStr = formatTimeRange(ev.from_time, ev.to_time);
+    dateSpan.innerHTML = `<svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 4h10M5 11h14M5 19h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> ${formatDateRangeLong(ev.event_date, ev.event_date_end)}${_timeStr ? ' · ' + _timeStr : ''}`;
 
     const locSpan = document.getElementById('modal-event-location');
     if (ev.location) {
@@ -480,7 +482,7 @@
 
     const { data, error } = await sb
       .from('events')
-      .select('id, title, event_date, event_date_end, closing_date, location, description, form_fields, is_open, open_to_juniors, open_to_seniors')
+      .select('id, title, event_date, event_date_end, closing_date, from_time, to_time, location, description, form_fields, is_open, open_to_juniors, open_to_seniors')
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
@@ -583,6 +585,8 @@
     document.getElementById('ce-date').value         = '';
     document.getElementById('ce-date-end').value     = '';
     document.getElementById('ce-closing-date').value = '';
+    document.getElementById('ce-from-time').value    = '';
+    document.getElementById('ce-to-time').value      = '';
     document.getElementById('ce-location').value     = '';
     document.getElementById('ce-description').value  = '';
     document.getElementById('ce-juniors').checked = true;
@@ -611,6 +615,8 @@
     document.getElementById('ce-date').value = ev.event_date ? ev.event_date.slice(0, 10) : '';
     document.getElementById('ce-date-end').value = ev.event_date_end ? ev.event_date_end.slice(0, 10) : '';
     document.getElementById('ce-closing-date').value = ev.closing_date || '';
+    document.getElementById('ce-from-time').value = ev.from_time || '';
+    document.getElementById('ce-to-time').value = ev.to_time || '';
     document.getElementById('ce-juniors').checked = ev.open_to_juniors !== false;
     document.getElementById('ce-seniors').checked = ev.open_to_seniors !== false;
 
@@ -629,11 +635,15 @@
     const fromDate    = document.getElementById('ce-date').value;
     const toDate      = document.getElementById('ce-date-end').value;
     const closingDate = document.getElementById('ce-closing-date').value;
+    const fromTime    = document.getElementById('ce-from-time').value;
+    const toTime      = document.getElementById('ce-to-time').value;
     const payload = {
       title:          document.getElementById('ce-title').value.trim(),
       event_date:     fromDate    ? new Date(fromDate + 'T00:00:00').toISOString() : null,
       event_date_end: toDate      ? new Date(toDate   + 'T00:00:00').toISOString() : null,
       closing_date:   closingDate || null,
+      from_time:      fromTime || null,
+      to_time:        toTime || null,
       location:       document.getElementById('ce-location').value.trim() || null,
       description:    document.getElementById('ce-description').value.trim() || null,
       open_to_juniors: document.getElementById('ce-juniors').checked,
@@ -839,7 +849,8 @@
     document.getElementById('modal-event-title').textContent = ev.title + ' — Manual Entry';
 
     const dateSpan = document.getElementById('modal-event-date');
-    dateSpan.innerHTML = `<svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 4h10M5 11h14M5 19h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> ${formatDateRangeLong(ev.event_date, ev.event_date_end)}`;
+    const _meTimeStr = formatTimeRange(ev.from_time, ev.to_time);
+    dateSpan.innerHTML = `<svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 4h10M5 11h14M5 19h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg> ${formatDateRangeLong(ev.event_date, ev.event_date_end)}${_meTimeStr ? ' · ' + _meTimeStr : ''}`;
 
     const locSpan = document.getElementById('modal-event-location');
     if (ev.location) {
@@ -1049,6 +1060,21 @@
     if (!toIso) return from;
     const to = formatDateLong(toIso);
     return from + ' — ' + to;
+  }
+  function formatTime12(timeStr) {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':').map(Number);
+    const suffix = h >= 12 ? 'pm' : 'am';
+    const hour12 = h % 12 || 12;
+    return m === 0 ? `${hour12}${suffix}` : `${hour12}:${m.toString().padStart(2,'0')}${suffix}`;
+  }
+  function formatTimeRange(fromTime, toTime) {
+    const f = formatTime12(fromTime);
+    const t = formatTime12(toTime);
+    if (f && t) return f + ' – ' + t;
+    if (f) return f;
+    if (t) return 'until ' + t;
+    return '';
   }
 
   // =============================================
