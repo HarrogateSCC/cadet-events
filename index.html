@@ -124,8 +124,16 @@
 
       <!-- XO Events Table -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100">
-          <h2 class="font-semibold text-gray-700">All Events</h2>
+        <div class="px-6 py-3 border-b border-gray-100 flex gap-1">
+          <button onclick="App.filterXoTab('upcoming')" id="xo-tab-upcoming"
+            class="xo-tab px-4 py-2 text-sm font-semibold rounded-lg transition
+              bg-navy text-white">Upcoming Events</button>
+          <button onclick="App.filterXoTab('past')" id="xo-tab-past"
+            class="xo-tab px-4 py-2 text-sm font-semibold rounded-lg transition
+              text-gray-500 hover:bg-gray-100">Past Events</button>
+          <button onclick="App.filterXoTab('all')" id="xo-tab-all"
+            class="xo-tab px-4 py-2 text-sm font-semibold rounded-lg transition
+              text-gray-500 hover:bg-gray-100">All Events</button>
         </div>
         <div id="xo-events-loading" class="flex items-center justify-center py-12 text-gray-400">
           <svg class="animate-spin h-6 w-6 mr-2 text-navy" viewBox="0 0 24 24" fill="none">

@@ -429,6 +429,42 @@
   //  XO: LOAD EVENTS TABLE
   // =============================================
 
+  let currentXoTab = 'upcoming';
+
+  function filterXoTab(tab) {
+    currentXoTab = tab;
+    // Update tab button styles
+    document.querySelectorAll('.xo-tab').forEach(btn => {
+      btn.classList.remove('bg-navy', 'text-white');
+      btn.classList.add('text-gray-500', 'hover:bg-gray-100');
+    });
+    const active = document.getElementById('xo-tab-' + tab);
+    if (active) {
+      active.classList.add('bg-navy', 'text-white');
+      active.classList.remove('text-gray-500', 'hover:bg-gray-100');
+    }
+    // Filter rows
+    const tbody = document.getElementById('xo-events-tbody');
+    const rows = tbody.querySelectorAll('tr[data-event-past]');
+    let visible = 0;
+    rows.forEach(tr => {
+      const isPast = tr.getAttribute('data-event-past') === 'true';
+      let show = tab === 'all' || (tab === 'upcoming' && !isPast) || (tab === 'past' && isPast);
+      tr.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    const emptyEl = document.getElementById('xo-events-empty');
+    const tableEl = document.getElementById('xo-events-table');
+    if (visible === 0 && rows.length > 0) {
+      emptyEl.textContent = tab === 'upcoming' ? 'No upcoming events.' : tab === 'past' ? 'No past events.' : 'No events yet.';
+      emptyEl.classList.remove('hidden');
+      tableEl.classList.add('hidden');
+    } else {
+      emptyEl.classList.add('hidden');
+      if (rows.length > 0) tableEl.classList.remove('hidden');
+    }
+  }
+
   async function loadXOEvents() {
     if (!sb) return;
     const loadEl  = document.getElementById('xo-events-loading');
@@ -451,7 +487,7 @@
 
     xoEventsCache = data;
 
-    if (data.length === 0) { emptyEl.classList.remove('hidden'); return; }
+    if (data.length === 0) { emptyEl.textContent = 'No events yet. Create your first one!'; emptyEl.classList.remove('hidden'); return; }
 
     // Count submissions per event
     const ids = data.map(e => e.id);
@@ -467,7 +503,9 @@
 
     data.forEach(ev => {
       const tr = document.createElement('tr');
-      const isPast = new Date(ev.event_date) < new Date();
+      const endDate = ev.event_date_end || ev.event_date;
+      const isPast = new Date(endDate) < new Date(new Date().toDateString());
+      tr.setAttribute('data-event-past', isPast ? 'true' : 'false');
       tr.innerHTML = `
         <td class="px-6 py-4">
           <div class="font-medium text-gray-800">${escHtml(ev.title)}</div>
@@ -506,6 +544,8 @@
     });
 
     tableEl.classList.remove('hidden');
+    // Apply current tab filter
+    filterXoTab(currentXoTab);
   }
 
   async function loadStats() {
@@ -1042,6 +1082,7 @@
     openSubmissions,
     exportSubmissions,
     manualEntry,
+    filterXoTab,
     promptDelete,
     confirmDelete,
     closeModal,
