@@ -45,10 +45,17 @@ nav#navbar {
   padding: 0.85rem 0;
   box-shadow: 0 2px 12px rgba(14,31,51,0.3);
 }
+nav#navbar {
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+}
 nav#navbar .text-xl {
-  font-family: 'Georgia', serif;
-  letter-spacing: 0.06em;
-  font-size: 1.2rem;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  font-size: 1.3rem;
+}
+nav#navbar button {
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
 }
 /* Active tab highlight */
 nav button.active-tab {
