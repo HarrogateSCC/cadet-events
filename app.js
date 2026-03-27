@@ -443,7 +443,7 @@
 
     const { data, error } = await sb
       .from('events')
-      .select('id, title, event_date, event_date_end, closing_date, location, is_open')
+      .select('id, title, event_date, event_date_end, closing_date, location, description, form_fields, is_open')
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
