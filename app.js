@@ -129,6 +129,7 @@
       .from('events')
       .select('*')
       .eq('is_open', true)
+      .is('deleted_at', null)
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
@@ -538,14 +539,25 @@
     let visible = 0;
     rows.forEach(tr => {
       const isPast = tr.getAttribute('data-event-past') === 'true';
-      let show = tab === 'all' || (tab === 'upcoming' && !isPast) || (tab === 'past' && isPast);
+      const isDeleted = tr.getAttribute('data-event-deleted') === 'true';
+      let show = false;
+      if (tab === 'deleted') {
+        show = isDeleted;
+      } else if (tab === 'all') {
+        show = !isDeleted;
+      } else if (tab === 'upcoming') {
+        show = !isPast && !isDeleted;
+      } else if (tab === 'past') {
+        show = isPast && !isDeleted;
+      }
       tr.style.display = show ? '' : 'none';
       if (show) visible++;
     });
     const emptyEl = document.getElementById('xo-events-empty');
     const tableEl = document.getElementById('xo-events-table');
-    if (visible === 0 && rows.length > 0) {
-      emptyEl.textContent = tab === 'upcoming' ? 'No upcoming events.' : tab === 'past' ? 'No past events.' : 'No events yet.';
+    if (visible === 0) {
+      const msgs = { upcoming: 'No upcoming events.', past: 'No past events.', all: 'No events yet.', deleted: 'No deleted events.' };
+      emptyEl.textContent = msgs[tab] || 'No events.';
       emptyEl.classList.remove('hidden');
       tableEl.classList.add('hidden');
     } else {
@@ -568,7 +580,7 @@
 
     const { data, error } = await sb
       .from('events')
-      .select('id, title, event_date, event_date_end, closing_date, from_time, to_time, location, description, form_fields, is_open, open_to_juniors, open_to_seniors, max_attendees, uniform_requirements, event_supervisors')
+      .select('id, title, event_date, event_date_end, closing_date, from_time, to_time, location, description, form_fields, is_open, open_to_juniors, open_to_seniors, max_attendees, uniform_requirements, event_supervisors, deleted_at')
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
@@ -590,46 +602,94 @@
       countMap[s.event_id] = (countMap[s.event_id] || 0) + 1;
     });
 
-    data.forEach(ev => {
+    // Auto-purge events deleted more than 2 days ago
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const toDelete = data.filter(ev => ev.deleted_at && ev.deleted_at < twoDaysAgo);
+    for (const ev of toDelete) {
+      await sb.from('submissions').delete().eq('event_id', ev.id);
+      await sb.from('events').delete().eq('id', ev.id);
+    }
+    const activeData = data.filter(ev => !ev.deleted_at || ev.deleted_at >= twoDaysAgo);
+
+    activeData.forEach(ev => {
       const tr = document.createElement('tr');
       const endDate = ev.event_date_end || ev.event_date;
       const isPast = new Date(endDate) < new Date(new Date().toDateString());
+      const isDeleted = !!ev.deleted_at;
       tr.setAttribute('data-event-past', isPast ? 'true' : 'false');
-      tr.innerHTML = `
-        <td class="px-6 py-4" data-label="Event">
-          <div class="font-medium text-gray-800">${escHtml(ev.title)}</div>
-          ${!ev.is_open ? '<span class="text-xs text-gray-400">(hidden)</span>' : ''}
-          ${isPast ? '<span class="text-xs text-amber-500">(past)</span>' : ''}
-        </td>
-        <td class="px-6 py-4 text-gray-600" data-label="Date">${formatDateRange(ev.event_date, ev.event_date_end)}</td>
-        <td class="px-6 py-4 text-gray-600" data-label="Location">${escHtml(ev.location || '—')}</td>
-        <td class="px-6 py-4 text-gray-600" data-label="Closing Date">${ev.closing_date ? formatDate(ev.closing_date + 'T00:00:00') : '—'}</td>
-        <td class="px-6 py-4 text-gray-600" data-label="Open To">${[ev.open_to_juniors !== false ? 'Juniors' : '', ev.open_to_seniors !== false ? 'Seniors' : ''].filter(Boolean).join(', ') || '—'}</td>
-        <td class="px-6 py-4 text-center" data-label="Sign-ups">
-          <button onclick="App.openSubmissions('${ev.id}')"
-            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
-              ${(countMap[ev.id] || 0) > 0 ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}
-              transition">
-            ${countMap[ev.id] || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''} sign-up${(countMap[ev.id] || 0) !== 1 ? 's' : ''}
-          </button>
-        </td>
-        <td class="px-6 py-4 text-right" data-label="Actions">
-          <div class="flex items-center justify-end gap-2">
-            <button onclick="App.openEditEvent('${ev.id}')"
-              class="p-1.5 text-gray-400 hover:text-navy hover:bg-blue-50 rounded-lg transition" title="Edit">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.172-8.172z"/>
-              </svg>
+      tr.setAttribute('data-event-deleted', isDeleted ? 'true' : 'false');
+
+      if (isDeleted) {
+        // Deleted event row — show republish & permanent delete actions
+        const deletedDate = new Date(ev.deleted_at);
+        const expiryDate = new Date(deletedDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+        const hoursLeft = Math.max(0, Math.round((expiryDate - Date.now()) / (1000 * 60 * 60)));
+        tr.classList.add('opacity-60');
+        tr.innerHTML = `
+          <td class="px-6 py-4" data-label="Event">
+            <div class="font-medium text-gray-800">${escHtml(ev.title)}</div>
+            <span class="text-xs text-red-400">Deleted · ${hoursLeft}h until permanent removal</span>
+          </td>
+          <td class="px-6 py-4 text-gray-600" data-label="Date">${formatDateRange(ev.event_date, ev.event_date_end)}</td>
+          <td class="px-6 py-4 text-gray-600" data-label="Location">${escHtml(ev.location || '—')}</td>
+          <td class="px-6 py-4 text-gray-600" data-label="Closing Date">${ev.closing_date ? formatDate(ev.closing_date + 'T00:00:00') : '—'}</td>
+          <td class="px-6 py-4 text-gray-600" data-label="Open To">${[ev.open_to_juniors !== false ? 'Juniors' : '', ev.open_to_seniors !== false ? 'Seniors' : ''].filter(Boolean).join(', ') || '—'}</td>
+          <td class="px-6 py-4 text-center" data-label="Sign-ups">
+            <span class="text-xs text-gray-400">${countMap[ev.id] || 0} sign-up${(countMap[ev.id] || 0) !== 1 ? 's' : ''}</span>
+          </td>
+          <td class="px-6 py-4 text-right" data-label="Actions">
+            <div class="flex items-center justify-end gap-2">
+              <button onclick="App.republishEvent('${ev.id}')"
+                class="px-3 py-1.5 text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 rounded-lg transition" title="Republish">
+                ↩ Republish
+              </button>
+              <button onclick="App.permanentlyDeleteEvent('${ev.id}')"
+                class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete permanently">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </button>
+            </div>
+          </td>
+        `;
+      } else {
+        // Normal event row
+        tr.innerHTML = `
+          <td class="px-6 py-4" data-label="Event">
+            <div class="font-medium text-gray-800">${escHtml(ev.title)}</div>
+            ${!ev.is_open ? '<span class="text-xs text-gray-400">(hidden)</span>' : ''}
+            ${isPast ? '<span class="text-xs text-amber-500">(past)</span>' : ''}
+          </td>
+          <td class="px-6 py-4 text-gray-600" data-label="Date">${formatDateRange(ev.event_date, ev.event_date_end)}</td>
+          <td class="px-6 py-4 text-gray-600" data-label="Location">${escHtml(ev.location || '—')}</td>
+          <td class="px-6 py-4 text-gray-600" data-label="Closing Date">${ev.closing_date ? formatDate(ev.closing_date + 'T00:00:00') : '—'}</td>
+          <td class="px-6 py-4 text-gray-600" data-label="Open To">${[ev.open_to_juniors !== false ? 'Juniors' : '', ev.open_to_seniors !== false ? 'Seniors' : ''].filter(Boolean).join(', ') || '—'}</td>
+          <td class="px-6 py-4 text-center" data-label="Sign-ups">
+            <button onclick="App.openSubmissions('${ev.id}')"
+              class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
+                ${(countMap[ev.id] || 0) > 0 ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}
+                transition">
+              ${countMap[ev.id] || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''} sign-up${(countMap[ev.id] || 0) !== 1 ? 's' : ''}
             </button>
-            <button onclick="App.promptDelete('${ev.id}')"
-              class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-              </svg>
-            </button>
-          </div>
-        </td>
-      `;
+          </td>
+          <td class="px-6 py-4 text-right" data-label="Actions">
+            <div class="flex items-center justify-end gap-2">
+              <button onclick="App.openEditEvent('${ev.id}')"
+                class="p-1.5 text-gray-400 hover:text-navy hover:bg-blue-50 rounded-lg transition" title="Edit">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.172-8.172z"/>
+                </svg>
+              </button>
+              <button onclick="App.promptDelete('${ev.id}')"
+                class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </button>
+            </div>
+          </td>
+        `;
+      }
       tbody.appendChild(tr);
     });
 
@@ -641,7 +701,7 @@
   async function loadStats() {
     if (!sb) return;
     const now = new Date().toISOString();
-    const { data: allEvents  } = await sb.from('events').select('id, event_date');
+    const { data: allEvents  } = await sb.from('events').select('id, event_date, deleted_at').is('deleted_at', null);
     const { data: allSubs    } = await sb.from('submissions').select('id');
 
     const total    = (allEvents || []).length;
@@ -1111,7 +1171,8 @@
     btn.disabled = true;
     btn.textContent = 'Deleting…';
 
-    const { error } = await sb.from('events').delete().eq('id', deleteTargetId);
+    // Soft delete — set deleted_at timestamp instead of removing
+    const { error } = await sb.from('events').update({ deleted_at: new Date().toISOString() }).eq('id', deleteTargetId);
 
     btn.disabled = false;
     btn.textContent = 'Delete';
@@ -1119,6 +1180,27 @@
     if (!error) {
       closeModal('modal-delete');
       deleteTargetId = null;
+      loadXOEvents();
+      loadStats();
+    }
+  }
+
+  async function republishEvent(eventId) {
+    if (!sb) return;
+    const { error } = await sb.from('events').update({ deleted_at: null, is_open: true }).eq('id', eventId);
+    if (!error) {
+      loadXOEvents();
+      loadStats();
+    }
+  }
+
+  async function permanentlyDeleteEvent(eventId) {
+    if (!sb) return;
+    if (!confirm('Permanently delete this event? This cannot be undone.')) return;
+    // Delete submissions first, then the event
+    await sb.from('submissions').delete().eq('event_id', eventId);
+    const { error } = await sb.from('events').delete().eq('id', eventId);
+    if (!error) {
       loadXOEvents();
       loadStats();
     }
@@ -1248,6 +1330,8 @@
     renderFormBuilder,
     toggleFieldMenu,
     filterParentEvents,
+    republishEvent,
+    permanentlyDeleteEvent,
   };
 
   document.addEventListener('DOMContentLoaded', init);
