@@ -1144,8 +1144,30 @@
   //  INIT
   // =============================================
 
+  function populateTimeSelects() {
+    const selects = [document.getElementById('ce-from-time'), document.getElementById('ce-to-time')];
+    selects.forEach(sel => {
+      if (!sel) return;
+      // keep the blank "—" option already in HTML
+      for (let h = 0; h < 24; h++) {
+        for (let m = 0; m < 60; m += 15) {
+          const val = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+          const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+          const ampm = h < 12 ? 'am' : 'pm';
+          const minStr = m === 0 ? '' : ':' + String(m).padStart(2, '0');
+          const label = hour12 + minStr + ampm;
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = label;
+          sel.appendChild(opt);
+        }
+      }
+    });
+  }
+
   function init() {
     initSupabase();
+    populateTimeSelects();
     showParentView();
   }
 
