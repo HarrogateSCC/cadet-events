@@ -1111,16 +1111,14 @@
     const to = formatDateLong(toIso);
     return from + ' — ' + to;
   }
-  function formatTime12(timeStr) {
+  function formatTime24(timeStr) {
     if (!timeStr) return '';
     const [h, m] = timeStr.split(':').map(Number);
-    const suffix = h >= 12 ? 'pm' : 'am';
-    const hour12 = h % 12 || 12;
-    return m === 0 ? `${hour12}${suffix}` : `${hour12}:${m.toString().padStart(2,'0')}${suffix}`;
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
   }
   function formatTimeRange(fromTime, toTime) {
-    const f = formatTime12(fromTime);
-    const t = formatTime12(toTime);
+    const f = formatTime24(fromTime);
+    const t = formatTime24(toTime);
     if (f && t) return f + ' – ' + t;
     if (f) return f;
     if (t) return 'until ' + t;
@@ -1152,10 +1150,7 @@
       for (let h = 0; h < 24; h++) {
         for (let m = 0; m < 60; m += 15) {
           const val = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-          const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-          const ampm = h < 12 ? 'am' : 'pm';
-          const minStr = m === 0 ? '' : ':' + String(m).padStart(2, '0');
-          const label = hour12 + minStr + ampm;
+          const label = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
           const opt = document.createElement('option');
           opt.value = val;
           opt.textContent = label;
