@@ -671,8 +671,8 @@
     const toTime      = document.getElementById('ce-to-time').value;
     const payload = {
       title:          document.getElementById('ce-title').value.trim(),
-      event_date:     fromDate    ? new Date(fromDate + 'T00:00:00').toISOString() : null,
-      event_date_end: toDate      ? new Date(toDate   + 'T00:00:00').toISOString() : null,
+      event_date:     fromDate    || null,
+      event_date_end: toDate      || null,
       closing_date:   closingDate || null,
       from_time:      fromTime || null,
       to_time:        toTime || null,
