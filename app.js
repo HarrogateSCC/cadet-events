@@ -125,12 +125,10 @@
     listEl.innerHTML = '';
     emptyEl.classList.add('hidden');
 
-    const now = new Date().toISOString();
     const { data, error } = await sb
       .from('events')
       .select('*')
       .eq('is_open', true)
-      .gte('event_date', now)
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
@@ -141,7 +139,15 @@
       return;
     }
 
-    parentEventsCache = data || [];
+    // Filter out events where the event date (or end date) has passed
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    parentEventsCache = (data || []).filter(ev => {
+      // Use the end date if it exists, otherwise the start date
+      const effectiveDate = ev.event_date_end ? new Date(ev.event_date_end) : new Date(ev.event_date);
+      effectiveDate.setHours(23, 59, 59, 999); // include the full day
+      return effectiveDate >= today;
+    });
 
     if (parentEventsCache.length === 0) {
       emptyEl.classList.remove('hidden');
@@ -221,15 +227,35 @@
     }
   }
 
+  function isApplicationsClosed(ev) {
+    if (!ev.closing_date) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const closing = new Date(ev.closing_date + 'T23:59:59');
+    return today > closing;
+  }
+
   function buildEventCard(ev) {
     const div = document.createElement('div');
     div.className = 'event-card fade-in';
     div.dataset.eventId = ev.id;
     div.dataset.eventDate = ev.event_date;
-    div.onclick = () => openEventModal(ev.id);
+    const closed = isApplicationsClosed(ev);
+    if (!closed) {
+      div.onclick = () => openEventModal(ev.id);
+    }
 
-    const dateStr = formatDateRange(ev.event_date, ev.event_date_end);
     const dayStr  = formatDay(ev.event_date);
+
+    // Build closing date line
+    let closingHtml = '';
+    if (ev.closing_date) {
+      if (closed) {
+        closingHtml = `<p class="text-red-400 text-xs mt-2 font-semibold">⚠ Applications closed</p>`;
+      } else {
+        closingHtml = `<p class="text-gray-400 text-xs mt-2">Applications close: ${formatDate(ev.closing_date + 'T00:00:00')}</p>`;
+      }
+    }
 
     div.innerHTML = `
       <div class="event-card-header">
@@ -243,7 +269,11 @@
       </div>
       <div class="event-card-body">
         ${ev.description ? `<p class="text-gray-700 text-sm line-clamp-2">${escHtml(ev.description)}</p>` : ''}
-        <button class="btn-signup">Sign Up <span class="arrow">→</span></button>
+        ${closed
+          ? `<p class="mt-3 text-sm font-semibold text-gray-400">Applications closed</p>`
+          : `<button class="btn-signup">Sign Up <span class="arrow">→</span></button>`
+        }
+        ${closingHtml}
       </div>
     `;
     return div;
@@ -279,6 +309,21 @@
     document.getElementById('modal-form-success').classList.add('hidden');
     document.getElementById('modal-form-container').classList.remove('hidden');
     document.getElementById('modal-form-error').classList.add('hidden');
+
+    // Check if applications are closed
+    if (isApplicationsClosed(ev)) {
+      document.getElementById('modal-form-container').classList.add('hidden');
+      fieldsContainer.innerHTML = '';
+      const closedMsg = document.createElement('div');
+      closedMsg.className = 'text-center py-6';
+      closedMsg.innerHTML = `
+        <p class="text-gray-500 font-semibold">Applications for this event are now closed.</p>
+        <p class="text-gray-400 text-sm mt-1">The closing date was ${formatDate(ev.closing_date + 'T00:00:00')}.</p>
+      `;
+      fieldsContainer.parentElement.insertBefore(closedMsg, fieldsContainer);
+      openModal('modal-event');
+      return;
+    }
 
     const schema = ev.form_fields || [];
     if (schema.length === 0) {
@@ -393,7 +438,7 @@
 
     const { data, error } = await sb
       .from('events')
-      .select('id, title, event_date, event_date_end, location, is_open')
+      .select('id, title, event_date, event_date_end, closing_date, location, is_open')
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
@@ -426,6 +471,7 @@
         </td>
         <td class="px-6 py-4 text-gray-600">${formatDateRange(ev.event_date, ev.event_date_end)}</td>
         <td class="px-6 py-4 text-gray-600">${escHtml(ev.location || '—')}</td>
+        <td class="px-6 py-4 text-gray-600">${ev.closing_date ? formatDate(ev.closing_date + 'T00:00:00') : '—'}</td>
         <td class="px-6 py-4 text-center">
           <button onclick="App.openSubmissions('${ev.id}')"
             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
@@ -486,11 +532,12 @@
     }];
     document.getElementById('create-event-title').textContent = 'New Event';
     document.getElementById('save-event-btn').textContent     = 'Create Event';
-    document.getElementById('ce-title').value       = '';
-    document.getElementById('ce-date').value        = '';
-    document.getElementById('ce-date-end').value    = '';
-    document.getElementById('ce-location').value    = '';
-    document.getElementById('ce-description').value = '';
+    document.getElementById('ce-title').value        = '';
+    document.getElementById('ce-date').value         = '';
+    document.getElementById('ce-date-end').value     = '';
+    document.getElementById('ce-closing-date').value = '';
+    document.getElementById('ce-location').value     = '';
+    document.getElementById('ce-description').value  = '';
     document.getElementById('create-event-error').classList.add('hidden');
     renderFormBuilder();
     openModal('modal-create-event');
@@ -514,6 +561,7 @@
     // Set date fields (date only, no time)
     document.getElementById('ce-date').value = ev.event_date ? ev.event_date.slice(0, 10) : '';
     document.getElementById('ce-date-end').value = ev.event_date_end ? ev.event_date_end.slice(0, 10) : '';
+    document.getElementById('ce-closing-date').value = ev.closing_date || '';
 
     renderFormBuilder();
     openModal('modal-create-event');
@@ -527,12 +575,14 @@
     const errEl  = document.getElementById('create-event-error');
     errEl.classList.add('hidden');
 
-    const fromDate = document.getElementById('ce-date').value;
-    const toDate   = document.getElementById('ce-date-end').value;
+    const fromDate    = document.getElementById('ce-date').value;
+    const toDate      = document.getElementById('ce-date-end').value;
+    const closingDate = document.getElementById('ce-closing-date').value;
     const payload = {
       title:          document.getElementById('ce-title').value.trim(),
-      event_date:     fromDate ? new Date(fromDate + 'T00:00:00').toISOString() : null,
-      event_date_end: toDate   ? new Date(toDate   + 'T00:00:00').toISOString() : null,
+      event_date:     fromDate    ? new Date(fromDate + 'T00:00:00').toISOString() : null,
+      event_date_end: toDate      ? new Date(toDate   + 'T00:00:00').toISOString() : null,
+      closing_date:   closingDate || null,
       location:       document.getElementById('ce-location').value.trim() || null,
       description:    document.getElementById('ce-description').value.trim() || null,
       form_fields:    formFields,
