@@ -230,6 +230,28 @@ nav button:hover {
   .event-card:hover { transform: none; }
 }
 
+/* ============ 11b. NAVBAR MOBILE ============ */
+@media (max-width: 768px) {
+  #navbar > div {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  /* Shrink the crest & Sea Cadets badge */
+  #navbar img.h-14 { height: 2.5rem; width: 2.5rem; }
+  #navbar img.h-10 { height: 2rem; width: 2rem; }
+  /* Smaller title text */
+  #navbar .text-xl { font-size: 0.95rem; }
+  /* Nav buttons: take full width row below */
+  #navbar > div > div:last-child {
+    width: 100%;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  #navbar button { font-size: 0.8rem; padding: 0.3rem 0.6rem; }
+}
+
 /* ============ 12. XO TABLE → CARDS ON MOBILE ============ */
 @media (max-width: 768px) {
   #xo-events-table thead { display: none; }
