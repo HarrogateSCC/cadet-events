@@ -57,10 +57,8 @@
     checkAuth();
   }
 
-  async function checkAuth() {
-    if (!sb) return;
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
+  function checkAuth() {
+    if (sessionStorage.getItem('xo_authenticated') === 'true') {
       showDashboard();
     } else {
       showLoginForm();
@@ -85,25 +83,24 @@
   //  AUTHENTICATION
   // =============================================
 
-  async function login(e) {
+  function login(e) {
     e.preventDefault();
-    if (!sb) return;
-    const email    = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
     const errEl    = document.getElementById('login-error');
     errEl.classList.add('hidden');
 
-    const { error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) {
-      errEl.textContent = error.message;
-      errEl.classList.remove('hidden');
-    } else {
+    if (typeof XO_PASSWORD !== 'undefined' && password === XO_PASSWORD) {
+      sessionStorage.setItem('xo_authenticated', 'true');
       showDashboard();
+    } else {
+      errEl.textContent = 'Incorrect password. Please try again.';
+      errEl.classList.remove('hidden');
     }
   }
 
-  async function logout() {
-    if (sb) await sb.auth.signOut();
+  function logout() {
+    sessionStorage.removeItem('xo_authenticated');
+    document.getElementById('login-password').value = '';
     showLoginForm();
     showParentView();
   }
