@@ -266,6 +266,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
           ${escHtml(ev.location)}</p>` : ''}
+        ${(ev.open_to_juniors !== false || ev.open_to_seniors !== false) ? `<div class="flex gap-1.5 mt-2 flex-wrap">${ev.open_to_juniors !== false ? '<span style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;letter-spacing:0.03em;color:#fff;">Juniors</span>' : ''}${ev.open_to_seniors !== false ? '<span style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;letter-spacing:0.03em;color:#fff;">Seniors</span>' : ''}</div>` : ''}
       </div>
       <div class="event-card-body">
         ${ev.description ? `<p class="text-gray-700 text-sm line-clamp-2">${escHtml(ev.description)}</p>` : ''}
@@ -479,7 +480,7 @@
 
     const { data, error } = await sb
       .from('events')
-      .select('id, title, event_date, event_date_end, closing_date, location, description, form_fields, is_open')
+      .select('id, title, event_date, event_date_end, closing_date, location, description, form_fields, is_open, open_to_juniors, open_to_seniors')
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
@@ -515,6 +516,7 @@
         <td class="px-6 py-4 text-gray-600" data-label="Date">${formatDateRange(ev.event_date, ev.event_date_end)}</td>
         <td class="px-6 py-4 text-gray-600" data-label="Location">${escHtml(ev.location || '—')}</td>
         <td class="px-6 py-4 text-gray-600" data-label="Closing Date">${ev.closing_date ? formatDate(ev.closing_date + 'T00:00:00') : '—'}</td>
+        <td class="px-6 py-4 text-gray-600" data-label="Open To">${[ev.open_to_juniors !== false ? 'Juniors' : '', ev.open_to_seniors !== false ? 'Seniors' : ''].filter(Boolean).join(', ') || '—'}</td>
         <td class="px-6 py-4 text-center" data-label="Sign-ups">
           <button onclick="App.openSubmissions('${ev.id}')"
             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
@@ -583,6 +585,8 @@
     document.getElementById('ce-closing-date').value = '';
     document.getElementById('ce-location').value     = '';
     document.getElementById('ce-description').value  = '';
+    document.getElementById('ce-juniors').checked = true;
+    document.getElementById('ce-seniors').checked = true;
     document.getElementById('create-event-error').classList.add('hidden');
     renderFormBuilder();
     openModal('modal-create-event');
@@ -607,6 +611,8 @@
     document.getElementById('ce-date').value = ev.event_date ? ev.event_date.slice(0, 10) : '';
     document.getElementById('ce-date-end').value = ev.event_date_end ? ev.event_date_end.slice(0, 10) : '';
     document.getElementById('ce-closing-date').value = ev.closing_date || '';
+    document.getElementById('ce-juniors').checked = ev.open_to_juniors !== false;
+    document.getElementById('ce-seniors').checked = ev.open_to_seniors !== false;
 
     renderFormBuilder();
     openModal('modal-create-event');
@@ -630,6 +636,8 @@
       closing_date:   closingDate || null,
       location:       document.getElementById('ce-location').value.trim() || null,
       description:    document.getElementById('ce-description').value.trim() || null,
+      open_to_juniors: document.getElementById('ce-juniors').checked,
+      open_to_seniors: document.getElementById('ce-seniors').checked,
       form_fields:    formFields,
       is_open:      true
     };
