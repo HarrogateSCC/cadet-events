@@ -507,15 +507,15 @@
       const isPast = new Date(endDate) < new Date(new Date().toDateString());
       tr.setAttribute('data-event-past', isPast ? 'true' : 'false');
       tr.innerHTML = `
-        <td class="px-6 py-4">
+        <td class="px-6 py-4" data-label="Event">
           <div class="font-medium text-gray-800">${escHtml(ev.title)}</div>
           ${!ev.is_open ? '<span class="text-xs text-gray-400">(hidden)</span>' : ''}
           ${isPast ? '<span class="text-xs text-amber-500">(past)</span>' : ''}
         </td>
-        <td class="px-6 py-4 text-gray-600">${formatDateRange(ev.event_date, ev.event_date_end)}</td>
-        <td class="px-6 py-4 text-gray-600">${escHtml(ev.location || '—')}</td>
-        <td class="px-6 py-4 text-gray-600">${ev.closing_date ? formatDate(ev.closing_date + 'T00:00:00') : '—'}</td>
-        <td class="px-6 py-4 text-center">
+        <td class="px-6 py-4 text-gray-600" data-label="Date">${formatDateRange(ev.event_date, ev.event_date_end)}</td>
+        <td class="px-6 py-4 text-gray-600" data-label="Location">${escHtml(ev.location || '—')}</td>
+        <td class="px-6 py-4 text-gray-600" data-label="Closing Date">${ev.closing_date ? formatDate(ev.closing_date + 'T00:00:00') : '—'}</td>
+        <td class="px-6 py-4 text-center" data-label="Sign-ups">
           <button onclick="App.openSubmissions('${ev.id}')"
             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
               ${(countMap[ev.id] || 0) > 0 ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}
@@ -523,7 +523,7 @@
             ${countMap[ev.id] || 0} sign-up${(countMap[ev.id] || 0) !== 1 ? 's' : ''}
           </button>
         </td>
-        <td class="px-6 py-4 text-right">
+        <td class="px-6 py-4 text-right" data-label="Actions">
           <div class="flex items-center justify-end gap-2">
             <button onclick="App.openEditEvent('${ev.id}')"
               class="p-1.5 text-gray-400 hover:text-navy hover:bg-blue-50 rounded-lg transition" title="Edit">
