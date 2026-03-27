@@ -243,7 +243,7 @@
       </div>
       <div class="event-card-body">
         ${ev.description ? `<p class="text-gray-700 text-sm line-clamp-2">${escHtml(ev.description)}</p>` : ''}
-        <button class="mt-3 text-sm font-semibold text-navy hover:underline">Sign Up →</button>
+        <button class="btn-signup">Sign Up <span class="arrow">→</span></button>
       </div>
     `;
     return div;

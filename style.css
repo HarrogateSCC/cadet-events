@@ -1,57 +1,149 @@
 /* =============================================
-   Sea Cadets Portal - Custom Styles
+   Sea Cadets Events – Naval Theme
    ============================================= */
 
-/* Navy colour tokens */
+/* ---- Colour tokens ---- */
 :root {
-  --navy: #0a2342;
-  --navy-dark: #071a31;
-  --gold: #c8a84b;
+  --navy:       #1f3a5f;
+  --navy-dark:  #162a44;
+  --navy-deep:  #0e1f33;
+  --brass:      #c4a45f;
+  --brass-light:#d4ba7a;
+  --brass-dark: #a8893e;
+  --cool-grey:  #eef2f6;
+  --warm-white: #f7f9fc;
 }
 
-/* Tailwind custom colour shim */
+/* Tailwind custom colour shims */
 .bg-navy        { background-color: var(--navy); }
 .bg-navy-dark   { background-color: var(--navy-dark); }
 .text-navy      { color: var(--navy); }
 .focus\:ring-navy:focus { --tw-ring-color: var(--navy); }
 .border-navy    { border-color: var(--navy); }
 
-/* ---- Smooth transitions ---- */
 * { box-sizing: border-box; }
 
-/* ---- Event cards ---- */
+/* ============ 1. BACKGROUND – subtle naval chart feel ============ */
+body {
+  background:
+    /* faint grid overlay */
+    linear-gradient(rgba(31,58,95,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31,58,95,0.025) 1px, transparent 1px),
+    /* soft navy→slate gradient */
+    linear-gradient(170deg, #e4eaf1 0%, var(--cool-grey) 40%, #dfe6ee 100%);
+  background-size:
+    40px 40px,
+    40px 40px,
+    100% 100%;
+  min-height: 100vh;
+}
+
+/* ============ 2. HEADER / NAVBAR ============ */
+nav#navbar {
+  background: linear-gradient(180deg, var(--navy) 0%, var(--navy-dark) 100%);
+  border-bottom: 2px solid var(--brass);
+  padding: 0.85rem 0;
+  box-shadow: 0 2px 12px rgba(14,31,51,0.3);
+}
+nav#navbar .text-xl {
+  font-family: 'Georgia', serif;
+  letter-spacing: 0.06em;
+  font-size: 1.2rem;
+}
+/* Active tab highlight */
+nav button.active-tab {
+  background: rgba(196,164,95,0.2);
+  border-bottom: 2px solid var(--brass);
+}
+nav button {
+  border-bottom: 2px solid transparent;
+  transition: background 0.2s, border-color 0.2s;
+}
+nav button:hover {
+  background: rgba(255,255,255,0.12);
+  border-bottom-color: var(--brass-light);
+}
+
+/* ============ 3. EVENT CARDS – structured & naval ============ */
 .event-card {
   background: white;
-  border-radius: 1rem;
-  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;           /* tighter radius – more structured */
+  border: 1px solid #d0d7e0;       /* cool grey border */
   overflow: hidden;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
   cursor: pointer;
+  position: relative;
 }
+/* subtle brass top highlight line */
+.event-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brass-dark), var(--brass-light), var(--brass-dark));
+  opacity: 0.7;
+}
+/* hover lift */
 .event-card:hover {
-  box-shadow: 0 8px 24px rgba(10,35,66,0.12);
-  transform: translateY(-2px);
+  box-shadow: 0 10px 32px rgba(22,42,68,0.16), 0 2px 8px rgba(22,42,68,0.08);
+  transform: translateY(-4px);
 }
+
 .event-card-header {
-  background: linear-gradient(135deg, var(--navy) 0%, #1a4a7c 100%);
+  background: linear-gradient(135deg, var(--navy) 0%, #2a5080 100%);
   color: white;
   padding: 1.25rem 1.5rem;
 }
+
+/* ---- Brass badge ---- */
 .event-card-badge {
   display: inline-block;
-  background: var(--gold);
-  color: var(--navy);
+  background: linear-gradient(135deg, var(--brass) 0%, var(--brass-light) 100%);
+  color: var(--navy-deep);
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 0.25rem 0.6rem;
-  border-radius: 9999px;
+  padding: 0.25rem 0.65rem;
+  border-radius: 3px;              /* less pill, more tag */
   margin-bottom: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
-.event-card-body { padding: 1.25rem 1.5rem; }
 
-/* ---- Field menu items ---- */
+.event-card-body {
+  padding: 1.25rem 1.5rem;
+}
+
+/* ============ 4. SIGN-UP BUTTON – hover animation ============ */
+.btn-signup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--navy);
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s, letter-spacing 0.2s;
+}
+.btn-signup:hover {
+  background: var(--navy);
+  color: white;
+  border-color: var(--navy);
+  transform: scale(1.03);
+  letter-spacing: 0.03em;
+}
+.btn-signup .arrow {
+  display: inline-block;
+  transition: transform 0.2s;
+}
+.btn-signup:hover .arrow {
+  transform: translateX(3px);
+}
+
+/* ============ 5. FIELD MENU / FORM BUILDER ============ */
 .field-menu-item {
   display: block;
   width: 100%;
@@ -60,55 +152,73 @@
   color: #374151;
   transition: background 0.15s;
 }
-.field-menu-item:hover { background: #f3f4f6; }
+.field-menu-item:hover { background: var(--cool-grey); }
 
-/* ---- Form builder field card ---- */
 .field-card {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
+  background: var(--warm-white);
+  border: 1px solid #d0d7e0;
+  border-radius: 0.5rem;
   padding: 1rem;
 }
-.field-card-handle {
-  cursor: grab;
-  color: #9ca3af;
-}
+.field-card-handle { cursor: grab; color: #9ca3af; }
 .field-card-handle:active { cursor: grabbing; }
 
-/* ---- Drag and drop ---- */
+/* Drag and drop */
 .field-card.dragging {
   opacity: 0.4;
   border: 2px dashed #6b7280;
 }
 .field-card.drag-over {
   border: 2px dashed var(--navy);
-  background: #eff6ff;
+  background: #e8eff8;
 }
 
-/* ---- Table rows ---- */
-#xo-events-tbody tr:hover { background: #f8fafc; }
+/* ============ 6. XO TABLE ============ */
+#xo-events-tbody tr {
+  transition: background 0.15s;
+}
+#xo-events-tbody tr:hover { background: var(--cool-grey); }
 
-/* ---- Animations ---- */
+/* ============ 7. BUTTONS (general) ============ */
+.btn-brass {
+  background: linear-gradient(135deg, var(--brass) 0%, var(--brass-light) 100%);
+  color: var(--navy-deep);
+  font-weight: 600;
+  border: none;
+  transition: filter 0.2s, transform 0.15s;
+}
+.btn-brass:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* ============ 8. ANIMATIONS ============ */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-in { animation: fadeIn 0.25s ease forwards; }
 
-/* ---- Real-time new event pulse ---- */
 @keyframes newItemPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(10,35,66,0.4); }
-  70%  { box-shadow: 0 0 0 10px rgba(10,35,66,0); }
-  100% { box-shadow: 0 0 0 0 rgba(10,35,66,0); }
+  0%   { box-shadow: 0 0 0 0 rgba(196,164,95,0.5); }
+  70%  { box-shadow: 0 0 0 12px rgba(196,164,95,0); }
+  100% { box-shadow: 0 0 0 0 rgba(196,164,95,0); }
 }
-.new-event-pulse { animation: newItemPulse 0.6s ease-out; }
+.new-event-pulse { animation: newItemPulse 0.7s ease-out; }
 
-/* ---- Scrollbar ---- */
+/* ============ 9. SCROLLBAR ============ */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 9999px; }
+::-webkit-scrollbar-thumb { background: #b0b8c4; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #8a95a5; }
 
-/* ---- Mobile adjustments ---- */
+/* ============ 10. MODAL OVERLAY ============ */
+#modal-overlay {
+  backdrop-filter: blur(2px);
+}
+
+/* ============ 11. MOBILE ============ */
 @media (max-width: 640px) {
   nav .text-xl { font-size: 1rem; }
+  .event-card:hover { transform: none; }
 }
