@@ -117,7 +117,7 @@
     if (!sb) {
       loadEl.classList.add('hidden');
       emptyEl.classList.remove('hidden');
-      emptyEl.textContent = 'Portal not yet configured. Ask your XO to set up Supabase.';
+      emptyEl.textContent = 'Portal not yet configured. Ask your TO to set up Supabase.';
       return;
     }
 
@@ -166,6 +166,10 @@
     parentEventsCache.forEach(ev => {
       listEl.appendChild(buildEventCard(ev));
     });
+
+    // Show search bar
+    document.getElementById('event-search-bar').classList.remove('hidden');
+    document.getElementById('event-search-input').value = '';
 
     // Subscribe to real-time inserts
     subscribeToEvents();
@@ -236,6 +240,27 @@
     }
   }
 
+  function filterParentEvents() {
+    const query = (document.getElementById('event-search-input').value || '').toLowerCase().trim();
+    const cards = document.querySelectorAll('#events-list .event-card');
+    let visible = 0;
+    cards.forEach((card, i) => {
+      const ev = parentEventsCache[i];
+      if (!ev) return;
+      const text = [ev.title, ev.description, ev.location, ev.uniform_requirements, ev.event_supervisors].filter(Boolean).join(' ').toLowerCase();
+      const show = !query || text.includes(query);
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    const emptyEl = document.getElementById('events-empty');
+    if (visible === 0 && parentEventsCache.length > 0) {
+      emptyEl.textContent = 'No events match your search.';
+      emptyEl.classList.remove('hidden');
+    } else {
+      emptyEl.classList.add('hidden');
+    }
+  }
+
   function isApplicationsClosed(ev) {
     if (!ev.closing_date) return false;
     const today = new Date();
@@ -281,6 +306,8 @@
       </div>
       <div class="event-card-body">
         ${ev.description ? `<p class="text-gray-700 text-sm line-clamp-2">${escHtml(ev.description)}</p>` : ''}
+        ${ev.uniform_requirements ? `<p class="text-gray-500 text-xs mt-1 flex items-center gap-1"><svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> <strong>Uniform:</strong>&nbsp;${escHtml(ev.uniform_requirements)}</p>` : ''}
+        ${ev.event_supervisors ? `<p class="text-gray-500 text-xs mt-1 flex items-center gap-1"><svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg> <strong>Supervisor:</strong>&nbsp;${escHtml(ev.event_supervisors)}</p>` : ''}
         ${ev.max_attendees ? `<p class="text-xs mt-1 ${isFull ? 'text-red-500 font-semibold' : 'text-gray-500'}">
           ${isFull ? '⚠ Fully booked' : `${ev._signupCount || 0} / ${ev.max_attendees} places taken`}
         </p>` : ''}
@@ -320,6 +347,20 @@
     }
 
     document.getElementById('modal-event-desc').textContent = ev.description || '';
+
+    // Show uniform & supervisors in modal
+    const modalExtras = document.getElementById('modal-event-extras');
+    if (modalExtras) modalExtras.remove();
+    const extrasHtml = [];
+    if (ev.uniform_requirements) extrasHtml.push(`<p class="text-sm text-gray-600"><strong>Uniform:</strong> ${escHtml(ev.uniform_requirements)}</p>`);
+    if (ev.event_supervisors) extrasHtml.push(`<p class="text-sm text-gray-600"><strong>Supervisor(s):</strong> ${escHtml(ev.event_supervisors)}</p>`);
+    if (extrasHtml.length) {
+      const extDiv = document.createElement('div');
+      extDiv.id = 'modal-event-extras';
+      extDiv.className = 'mb-4 space-y-1';
+      extDiv.innerHTML = extrasHtml.join('');
+      document.getElementById('modal-event-desc').insertAdjacentElement('afterend', extDiv);
+    }
 
     // Build dynamic form
     const fieldsContainer = document.getElementById('modal-form-fields');
@@ -420,6 +461,21 @@
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting…';
 
+    // Check for duplicate cadet name
+    const cadetName = data['field_cadet_name'];
+    if (cadetName && cadetName.trim()) {
+      const { data: existing } = await sb.from('submissions').select('id, form_data').eq('event_id', eventId);
+      const dupe = (existing || []).some(s => s.form_data && s.form_data['field_cadet_name'] &&
+        s.form_data['field_cadet_name'].trim().toLowerCase() === cadetName.trim().toLowerCase());
+      if (dupe) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit';
+        errEl.textContent = 'A sign-up for this cadet already exists for this event.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+    }
+
     // Check max attendees limit before submitting
     if (!isManualEntry) {
       const ev = parentEventsCache.find(e => e.id === eventId);
@@ -512,7 +568,7 @@
 
     const { data, error } = await sb
       .from('events')
-      .select('id, title, event_date, event_date_end, closing_date, from_time, to_time, location, description, form_fields, is_open, open_to_juniors, open_to_seniors, max_attendees')
+      .select('id, title, event_date, event_date_end, closing_date, from_time, to_time, location, description, form_fields, is_open, open_to_juniors, open_to_seniors, max_attendees, uniform_requirements, event_supervisors')
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
@@ -622,6 +678,8 @@
     document.getElementById('ce-juniors').checked = true;
     document.getElementById('ce-seniors').checked = true;
     document.getElementById('ce-max-attendees').value = '';
+    document.getElementById('ce-uniform').value = '';
+    document.getElementById('ce-supervisors').value = '';
     document.getElementById('create-event-error').classList.add('hidden');
     renderFormBuilder();
     openModal('modal-create-event');
@@ -651,6 +709,8 @@
     document.getElementById('ce-juniors').checked = ev.open_to_juniors !== false;
     document.getElementById('ce-seniors').checked = ev.open_to_seniors !== false;
     document.getElementById('ce-max-attendees').value = ev.max_attendees || '';
+    document.getElementById('ce-uniform').value = ev.uniform_requirements || '';
+    document.getElementById('ce-supervisors').value = ev.event_supervisors || '';
 
     renderFormBuilder();
     openModal('modal-create-event');
@@ -681,6 +741,8 @@
       open_to_juniors: document.getElementById('ce-juniors').checked,
       open_to_seniors: document.getElementById('ce-seniors').checked,
       max_attendees:  parseInt(document.getElementById('ce-max-attendees').value) || null,
+      uniform_requirements: document.getElementById('ce-uniform').value.trim() || null,
+      event_supervisors:    document.getElementById('ce-supervisors').value.trim() || null,
       form_fields:    formFields,
       is_open:      true
     };
@@ -757,7 +819,6 @@
     formFields.forEach((field, index) => {
       const card = document.createElement('div');
       card.className = 'field-card';
-      card.draggable = true;
       card.dataset.fieldId = field.id;
 
       const typeLabel = {
@@ -810,12 +871,17 @@
         </div>
       `;
 
-      // Drag-and-drop reordering
+      // Drag-and-drop reordering — only via the handle
+      const handle = card.querySelector('.field-card-handle');
+      if (handle) {
+        handle.addEventListener('mousedown', () => { card.draggable = true; });
+        handle.addEventListener('touchstart', () => { card.draggable = true; }, { passive: true });
+      }
       card.addEventListener('dragstart', onDragStart);
       card.addEventListener('dragover',  onDragOver);
       card.addEventListener('dragleave', onDragLeave);
       card.addEventListener('drop',      onDrop);
-      card.addEventListener('dragend',   onDragEnd);
+      card.addEventListener('dragend',   (e) => { onDragEnd(e); card.draggable = false; });
 
       container.appendChild(card);
     });
@@ -1065,19 +1131,7 @@
   function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
   function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-  // Close modals on backdrop click
-  document.querySelectorAll('[id^="modal-"]').forEach(modal => {
-    modal.addEventListener('click', function (e) {
-      if (e.target === this) closeModal(this.id);
-    });
-  });
-
-  // Escape key closes modals
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
-    }
-  });
+  // Modals only close via their X button or Cancel — NOT backdrop click or Escape
 
   // =============================================
   //  DATE HELPERS
@@ -1193,6 +1247,7 @@
     updateField,
     renderFormBuilder,
     toggleFieldMenu,
+    filterParentEvents,
   };
 
   document.addEventListener('DOMContentLoaded', init);

@@ -28,7 +28,7 @@
         <button id="btn-parent-view" onclick="App.showParentView()"
           class="px-3 py-1.5 rounded text-sm font-medium hover:bg-white/20 transition">Events</button>
         <button id="btn-xo-view" onclick="App.showXOView()"
-          class="px-3 py-1.5 rounded text-sm font-medium hover:bg-white/20 transition">XO Admin</button>
+          class="px-3 py-1.5 rounded text-sm font-medium hover:bg-white/20 transition">TO Admin</button>
         <button id="btn-logout" onclick="App.logout()"
           class="hidden px-3 py-1.5 bg-white/20 rounded text-sm font-medium hover:bg-white/30 transition">Log Out</button>
       </div>
@@ -42,6 +42,15 @@
 
   <!-- ========== PARENT VIEW ========== -->
   <div id="view-parent" class="max-w-5xl mx-auto px-4 py-8">
+
+    <div id="event-search-bar" class="mb-6 hidden">
+      <div class="relative max-w-md mx-auto">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="event-search-input" type="text" placeholder="Search events…"
+          oninput="App.filterParentEvents()"
+          class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy bg-white/80 backdrop-blur" />
+      </div>
+    </div>
 
     <div id="events-loading" class="flex items-center justify-center py-16 text-gray-400">
       <svg class="animate-spin h-8 w-8 mr-3 text-navy" viewBox="0 0 24 24" fill="none">
@@ -72,14 +81,14 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
             </svg>
           </div>
-          <h2 class="text-2xl font-bold text-navy">XO Login</h2>
+          <h2 class="text-2xl font-bold text-navy">TO Login</h2>
           <p class="text-gray-500 text-sm mt-1">Admin access only</p>
         </div>
         <div id="login-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
         <form onsubmit="App.login(event)" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input id="login-password" type="password" required placeholder="Enter XO password"
+            <input id="login-password" type="password" required placeholder="Enter TO password"
               class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy focus:border-transparent" />
           </div>
           <button type="submit"
@@ -94,7 +103,7 @@
     <div id="xo-dashboard" class="hidden">
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-3xl font-bold text-navy">XO Dashboard</h1>
+          <h1 class="text-3xl font-bold text-navy">TO Dashboard</h1>
           <p class="text-gray-500 mt-1">Manage events and view sign-ups.</p>
         </div>
         <button onclick="App.openCreateEvent()"
@@ -278,6 +287,16 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Max Attendees <span class="text-gray-400 text-xs font-normal">(optional)</span></label>
               <input id="ce-max-attendees" type="number" min="1" placeholder="Unlimited if blank"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Event Supervisor(s) <span class="text-gray-400 text-xs font-normal">(optional)</span></label>
+              <input id="ce-supervisors" type="text" placeholder="e.g. Lt Smith, PO Jones"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Uniform Requirements <span class="text-gray-400 text-xs font-normal">(optional)</span></label>
+              <input id="ce-uniform" type="text" placeholder="e.g. Number 1s, Rig of the day"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
             </div>
             <div class="sm:col-span-2">
