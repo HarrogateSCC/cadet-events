@@ -129,7 +129,7 @@
     const { data, error } = await sb
       .from('events')
       .select('*')
-      .eq('is_active', true)
+      .eq('is_open', true)
       .gte('event_date', now)
       .order('event_date', { ascending: true });
 
@@ -166,7 +166,7 @@
         event: 'INSERT',
         schema: 'public',
         table: 'events',
-        filter: 'is_active=eq.true'
+        filter: 'is_open=eq.true'
       }, payload => {
         const ev = payload.new;
         const now = new Date();
@@ -281,7 +281,7 @@
     document.getElementById('modal-form-container').classList.remove('hidden');
     document.getElementById('modal-form-error').classList.add('hidden');
 
-    const schema = ev.form_schema || [];
+    const schema = ev.form_fields || [];
     if (schema.length === 0) {
       fieldsContainer.innerHTML = '<p class="text-sm text-gray-500 italic">No form fields — just click Submit to sign up.</p>';
     } else {
@@ -394,7 +394,7 @@
 
     const { data, error } = await sb
       .from('events')
-      .select('id, title, event_date, event_date_end, location, is_active')
+      .select('id, title, event_date, event_date_end, location, is_open')
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
@@ -422,7 +422,7 @@
       tr.innerHTML = `
         <td class="px-6 py-4">
           <div class="font-medium text-gray-800">${escHtml(ev.title)}</div>
-          ${!ev.is_active ? '<span class="text-xs text-gray-400">(hidden)</span>' : ''}
+          ${!ev.is_open ? '<span class="text-xs text-gray-400">(hidden)</span>' : ''}
           ${isPast ? '<span class="text-xs text-amber-500">(past)</span>' : ''}
         </td>
         <td class="px-6 py-4 text-gray-600">${formatDateRange(ev.event_date, ev.event_date_end)}</td>
@@ -503,7 +503,7 @@
     if (!ev) return;
 
     editingEventId = eventId;
-    formFields = (ev.form_schema || []).map(f => ({ ...f }));
+    formFields = (ev.form_fields || []).map(f => ({ ...f }));
 
     document.getElementById('create-event-title').textContent = 'Edit Event';
     document.getElementById('save-event-btn').textContent     = 'Save Changes';
@@ -536,8 +536,8 @@
       event_date_end: toDate   ? new Date(toDate   + 'T00:00:00').toISOString() : null,
       location:       document.getElementById('ce-location').value.trim() || null,
       description:    document.getElementById('ce-description').value.trim() || null,
-      form_schema:    formFields,
-      is_active:      true
+      form_fields:    formFields,
+      is_open:      true
     };
 
     btn.disabled = true;
@@ -759,9 +759,9 @@
 
     // Get field labels from event schema for nicer headers
     let labelMap = {};
-    const { data: evFull } = await sb.from('events').select('form_schema').eq('id', eventId).single();
-    if (evFull && evFull.form_schema) {
-      evFull.form_schema.forEach(f => { labelMap[f.id] = f.label; });
+    const { data: evFull } = await sb.from('events').select('form_fields').eq('id', eventId).single();
+    if (evFull && evFull.form_fields) {
+      evFull.form_fields.forEach(f => { labelMap[f.id] = f.label; });
     }
 
     thead.innerHTML = `<tr>
