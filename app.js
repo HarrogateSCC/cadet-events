@@ -360,12 +360,12 @@
 
     const { error } = await sb.from('submissions').insert({
       event_id: eventId,
-      data: data,
+      form_data: data,
       submitted_at: new Date().toISOString()
     });
 
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Submit Sign-up';
+    submitBtn.textContent = 'Submit';
 
     if (error) {
       errEl.textContent = 'Failed to submit. Please try again.';
@@ -598,15 +598,16 @@
 
   function renderFormBuilder() {
     const container = document.getElementById('form-builder-fields');
-    const emptyEl   = document.getElementById('form-builder-empty');
     container.innerHTML = '';
 
     if (formFields.length === 0) {
-      container.appendChild(emptyEl);
-      emptyEl.style.display = '';
+      const emptyP = document.createElement('p');
+      emptyP.id = 'form-builder-empty';
+      emptyP.className = 'text-center text-sm text-gray-400 py-4';
+      emptyP.textContent = 'No fields added yet. Use "Add Field" to build your sign-up form.';
+      container.appendChild(emptyP);
       return;
     }
-    emptyEl.style.display = 'none';
 
     formFields.forEach((field, index) => {
       const card = document.createElement('div');
@@ -754,7 +755,7 @@
 
     // Build column headers from first submission
     const allKeys = new Set();
-    subs.forEach(s => Object.keys(s.data || {}).forEach(k => allKeys.add(k)));
+    subs.forEach(s => Object.keys(s.form_data || {}).forEach(k => allKeys.add(k)));
     const keys = Array.from(allKeys);
 
     // Get field labels from event schema for nicer headers
@@ -776,7 +777,7 @@
       tr.className = 'hover:bg-gray-50';
       tr.innerHTML = `
         <td class="px-4 py-3 text-gray-400 text-xs">${i + 1}</td>
-        ${keys.map(k => `<td class="px-4 py-3 text-gray-700 text-sm">${escHtml(sub.data[k] ?? '—')}</td>`).join('')}
+        ${keys.map(k => `<td class="px-4 py-3 text-gray-700 text-sm">${escHtml(sub.form_data[k] ?? '—')}</td>`).join('')}
         <td class="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">${formatDateLong(sub.submitted_at)}</td>
       `;
       tbody.appendChild(tr);
@@ -798,7 +799,7 @@
 
     const headers = [...keys.map(k => labelMap[k] || k), 'Submitted At'];
     const rows    = subs.map(s => [
-      ...keys.map(k => `"${(s.data[k] || '').toString().replace(/"/g, '""')}"`),
+      ...keys.map(k => `"${(s.form_data[k] || '').toString().replace(/"/g, '""')}"`),
       `"${formatDateLong(s.submitted_at)}"`
     ]);
 
