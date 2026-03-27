@@ -154,6 +154,15 @@
       return;
     }
 
+    // Fetch submission counts for events with max_attendees
+    const cappedIds = parentEventsCache.filter(e => e.max_attendees).map(e => e.id);
+    if (cappedIds.length > 0) {
+      const { data: subs } = await sb.from('submissions').select('event_id').in('event_id', cappedIds);
+      const counts = {};
+      (subs || []).forEach(s => { counts[s.event_id] = (counts[s.event_id] || 0) + 1; });
+      parentEventsCache.forEach(ev => { if (ev.max_attendees) ev._signupCount = counts[ev.id] || 0; });
+    }
+
     parentEventsCache.forEach(ev => {
       listEl.appendChild(buildEventCard(ev));
     });
@@ -241,7 +250,8 @@
     div.dataset.eventId = ev.id;
     div.dataset.eventDate = ev.event_date;
     const closed = isApplicationsClosed(ev);
-    if (!closed) {
+    const isFull = ev.max_attendees && (ev._signupCount || 0) >= ev.max_attendees;
+    if (!closed && !isFull) {
       div.onclick = () => openEventModal(ev.id);
     }
 
@@ -271,9 +281,14 @@
       </div>
       <div class="event-card-body">
         ${ev.description ? `<p class="text-gray-700 text-sm line-clamp-2">${escHtml(ev.description)}</p>` : ''}
+        ${ev.max_attendees ? `<p class="text-xs mt-1 ${isFull ? 'text-red-500 font-semibold' : 'text-gray-500'}">
+          ${isFull ? '⚠ Fully booked' : `${ev._signupCount || 0} / ${ev.max_attendees} places taken`}
+        </p>` : ''}
         ${closed
           ? `<p class="mt-3 text-sm font-semibold text-gray-400">Applications closed</p>`
-          : `<button class="btn-signup">Sign Up <span class="arrow">→</span></button>`
+          : isFull
+            ? `<p class="mt-3 text-sm font-semibold text-gray-400">Fully booked</p>`
+            : `<button class="btn-signup">Sign Up <span class="arrow">→</span></button>`
         }
         ${closingHtml}
       </div>
@@ -405,6 +420,21 @@
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting…';
 
+    // Check max attendees limit before submitting
+    if (!isManualEntry) {
+      const ev = parentEventsCache.find(e => e.id === eventId);
+      if (ev && ev.max_attendees) {
+        const { count } = await sb.from('submissions').select('*', { count: 'exact', head: true }).eq('event_id', eventId);
+        if (count >= ev.max_attendees) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+          errEl.textContent = 'Sorry, this event is now fully booked.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+      }
+    }
+
     const { error } = await sb.from('submissions').insert({
       event_id: eventId,
       form_data: data,
@@ -482,7 +512,7 @@
 
     const { data, error } = await sb
       .from('events')
-      .select('id, title, event_date, event_date_end, closing_date, from_time, to_time, location, description, form_fields, is_open, open_to_juniors, open_to_seniors')
+      .select('id, title, event_date, event_date_end, closing_date, from_time, to_time, location, description, form_fields, is_open, open_to_juniors, open_to_seniors, max_attendees')
       .order('event_date', { ascending: true });
 
     loadEl.classList.add('hidden');
@@ -524,7 +554,7 @@
             class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
               ${(countMap[ev.id] || 0) > 0 ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}
               transition">
-            ${countMap[ev.id] || 0} sign-up${(countMap[ev.id] || 0) !== 1 ? 's' : ''}
+            ${countMap[ev.id] || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''} sign-up${(countMap[ev.id] || 0) !== 1 ? 's' : ''}
           </button>
         </td>
         <td class="px-6 py-4 text-right" data-label="Actions">
@@ -591,6 +621,7 @@
     document.getElementById('ce-description').value  = '';
     document.getElementById('ce-juniors').checked = true;
     document.getElementById('ce-seniors').checked = true;
+    document.getElementById('ce-max-attendees').value = '';
     document.getElementById('create-event-error').classList.add('hidden');
     renderFormBuilder();
     openModal('modal-create-event');
@@ -619,6 +650,7 @@
     document.getElementById('ce-to-time').value = ev.to_time || '';
     document.getElementById('ce-juniors').checked = ev.open_to_juniors !== false;
     document.getElementById('ce-seniors').checked = ev.open_to_seniors !== false;
+    document.getElementById('ce-max-attendees').value = ev.max_attendees || '';
 
     renderFormBuilder();
     openModal('modal-create-event');
@@ -648,6 +680,7 @@
       description:    document.getElementById('ce-description').value.trim() || null,
       open_to_juniors: document.getElementById('ce-juniors').checked,
       open_to_seniors: document.getElementById('ce-seniors').checked,
+      max_attendees:  parseInt(document.getElementById('ce-max-attendees').value) || null,
       form_fields:    formFields,
       is_open:      true
     };
