@@ -9,6 +9,7 @@
   let sb = null;
   let pendingJIFile = null;        // file chosen for upload
   let currentJIPath = null;        // existing file path in storage
+  let jiMode = 'file';             // 'file' or 'link'
 
   function initSupabase() {
     if (
@@ -311,7 +312,7 @@
         ${ev.description ? `<p class="text-gray-700 text-sm line-clamp-2">${escHtml(ev.description)}</p>` : ''}
         ${ev.uniform_requirements ? `<p class="text-gray-500 text-xs mt-1 flex items-center gap-1"><svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> <strong>Uniform:</strong>&nbsp;${escHtml(ev.uniform_requirements)}</p>` : ''}
         ${ev.event_supervisors ? `<p class="text-gray-500 text-xs mt-1 flex items-center gap-1"><svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg> <strong>Supervisor:</strong>&nbsp;${escHtml(ev.event_supervisors)}</p>` : ''}
-        ${ev.joining_instructions_path ? `<p class="text-xs mt-1"><a href="${getJIPublicUrl(ev.joining_instructions_path)}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">📄 Joining Instructions</a></p>` : ''}
+        ${ev.joining_instructions_path ? `<p class="text-xs mt-1"><a href="${getJIPublicUrl(ev.joining_instructions_path)}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">📄 Joining Instructions</a></p>` : ev.joining_instructions_url ? `<p class="text-xs mt-1"><a href="${escHtml(ev.joining_instructions_url)}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">📄 Joining Instructions</a></p>` : ''}
         ${ev.max_attendees ? `<p class="text-xs mt-1 ${isFull ? 'text-red-500 font-semibold' : 'text-gray-500'}">
           ${isFull ? '⚠ Fully booked' : `${ev._signupCount || 0} / ${ev.max_attendees} places taken`}
         </p>` : ''}
@@ -361,6 +362,8 @@
     if (ev.joining_instructions_path) {
       const jiUrl = getJIPublicUrl(ev.joining_instructions_path);
       extrasHtml.push(`<p class="text-sm"><a href="${jiUrl}" target="_blank" class="text-blue-600 hover:underline">📄 Download Joining Instructions</a></p>`);
+    } else if (ev.joining_instructions_url) {
+      extrasHtml.push(`<p class="text-sm"><a href="${escHtml(ev.joining_instructions_url)}" target="_blank" class="text-blue-600 hover:underline">📄 Joining Instructions</a></p>`);
     }
     if (extrasHtml.length) {
       const extDiv = document.createElement('div');
@@ -754,6 +757,8 @@
     document.getElementById('ce-ji-file').value = '';
     document.getElementById('ce-ji-label').textContent = '📎 Click to upload a file (PDF, DOCX, etc.)';
     document.getElementById('ce-ji-current').classList.add('hidden');
+    document.getElementById('ce-ji-url').value = '';
+    switchJITab('file');
     renderFormBuilder();
     openModal('modal-create-event');
   }
@@ -785,11 +790,19 @@
     document.getElementById('ce-uniform').value = ev.uniform_requirements || '';
     document.getElementById('ce-supervisors').value = ev.event_supervisors || '';
 
-    // Joining instructions file state
+    // Joining instructions state
     pendingJIFile = null;
     document.getElementById('ce-ji-file').value = '';
     document.getElementById('ce-ji-label').textContent = '📎 Click to upload a file (PDF, DOCX, etc.)';
-    if (ev.joining_instructions_path) {
+    document.getElementById('ce-ji-url').value = '';
+    if (ev.joining_instructions_url) {
+      // Has a link — switch to link tab
+      currentJIPath = null;
+      document.getElementById('ce-ji-current').classList.add('hidden');
+      document.getElementById('ce-ji-url').value = ev.joining_instructions_url;
+      switchJITab('link');
+    } else if (ev.joining_instructions_path) {
+      // Has an uploaded file — switch to file tab
       currentJIPath = ev.joining_instructions_path;
       const { data: urlData } = sb.storage.from('joining-instructions').getPublicUrl(ev.joining_instructions_path);
       const currentEl = document.getElementById('ce-ji-current');
@@ -797,9 +810,11 @@
       linkEl.href = urlData.publicUrl;
       linkEl.textContent = ev.joining_instructions_path.split('/').pop();
       currentEl.classList.remove('hidden');
+      switchJITab('file');
     } else {
       currentJIPath = null;
       document.getElementById('ce-ji-current').classList.add('hidden');
+      switchJITab('file');
     }
 
     renderFormBuilder();
@@ -840,28 +855,38 @@
     btn.disabled = true;
     btn.textContent = 'Saving…';
 
-    // Handle joining instructions file upload
-    if (pendingJIFile) {
-      const ext = pendingJIFile.name.split('.').pop();
-      const filePath = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
-      // Remove old file if replacing
+    // Handle joining instructions — file or link mode
+    if (jiMode === 'link') {
+      const jiUrl = document.getElementById('ce-ji-url').value.trim();
+      payload.joining_instructions_url = jiUrl || null;
+      payload.joining_instructions_path = null; // clear any old file
       if (currentJIPath) {
         await sb.storage.from('joining-instructions').remove([currentJIPath]);
       }
-      const { error: upErr } = await sb.storage.from('joining-instructions').upload(filePath, pendingJIFile);
-      if (upErr) {
-        errEl.textContent = 'File upload failed: ' + upErr.message;
-        errEl.classList.remove('hidden');
-        btn.disabled = false;
-        btn.textContent = editingEventId ? 'Save Changes' : 'Create Event';
-        return;
+    } else {
+      // File mode
+      payload.joining_instructions_url = null; // clear any old link
+      if (pendingJIFile) {
+        const ext = pendingJIFile.name.split('.').pop();
+        const filePath = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
+        if (currentJIPath) {
+          await sb.storage.from('joining-instructions').remove([currentJIPath]);
+        }
+        const { error: upErr } = await sb.storage.from('joining-instructions').upload(filePath, pendingJIFile);
+        if (upErr) {
+          errEl.textContent = 'File upload failed: ' + upErr.message;
+          errEl.classList.remove('hidden');
+          btn.disabled = false;
+          btn.textContent = editingEventId ? 'Save Changes' : 'Create Event';
+          return;
+        }
+        payload.joining_instructions_path = filePath;
+      } else if (currentJIPath === null) {
+        // File was removed
+        payload.joining_instructions_path = null;
       }
-      payload.joining_instructions_path = filePath;
-    } else if (currentJIPath === null) {
-      // File was removed
-      payload.joining_instructions_path = null;
+      // If currentJIPath is set and no new file, keep existing (don't touch column)
     }
-    // If currentJIPath is set and no new file, don't touch the column (keep existing)
 
     let error;
     if (editingEventId) {
@@ -1370,12 +1395,36 @@
     }
   }
 
+  function switchJITab(mode) {
+    jiMode = mode;
+    const fileTab = document.getElementById('ce-ji-tab-file');
+    const linkTab = document.getElementById('ce-ji-tab-link');
+    const filePanel = document.getElementById('ce-ji-file-panel');
+    const linkPanel = document.getElementById('ce-ji-link-panel');
+    if (mode === 'file') {
+      fileTab.classList.add('bg-navy', 'text-white');
+      fileTab.classList.remove('bg-white', 'text-gray-600');
+      linkTab.classList.remove('bg-navy', 'text-white');
+      linkTab.classList.add('bg-white', 'text-gray-600');
+      filePanel.classList.remove('hidden');
+      linkPanel.classList.add('hidden');
+    } else {
+      linkTab.classList.add('bg-navy', 'text-white');
+      linkTab.classList.remove('bg-white', 'text-gray-600');
+      fileTab.classList.remove('bg-navy', 'text-white');
+      fileTab.classList.add('bg-white', 'text-gray-600');
+      linkPanel.classList.remove('hidden');
+      filePanel.classList.add('hidden');
+    }
+  }
+
   function removeJoiningInstructions() {
     currentJIPath = null;
     pendingJIFile = null;
     document.getElementById('ce-ji-file').value = '';
     document.getElementById('ce-ji-label').textContent = '📎 Click to upload a file (PDF, DOCX, etc.)';
     document.getElementById('ce-ji-current').classList.add('hidden');
+    document.getElementById('ce-ji-url').value = '';
   }
 
   function getJIPublicUrl(path) {
@@ -1418,5 +1467,6 @@
   };
 
   window.removeJoiningInstructions = removeJoiningInstructions;
+  window.switchJITab = switchJITab;
   document.addEventListener('DOMContentLoaded', init);
 })();

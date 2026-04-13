@@ -304,14 +304,30 @@
             </div>
             <div class="sm:col-span-2">
               <label class="block text-sm font-medium text-gray-700 mb-1">Joining Instructions <span class="text-gray-400 text-xs font-normal">(optional)</span></label>
-              <div id="ce-ji-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-500 cursor-pointer hover:border-brass transition-colors">
-                <span id="ce-ji-label">📎 Click to upload a file (PDF, DOCX, etc.)</span>
-                <input id="ce-ji-file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.xlsx,.xls" class="hidden" />
+              <!-- Toggle buttons -->
+              <div class="flex gap-2 mb-2">
+                <button type="button" id="ce-ji-tab-file" onclick="window.switchJITab('file')"
+                  class="ji-tab active px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 bg-navy text-white transition-colors">📎 Upload file</button>
+                <button type="button" id="ce-ji-tab-link" onclick="window.switchJITab('link')"
+                  class="ji-tab px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors">🔗 Paste link</button>
               </div>
-              <div id="ce-ji-current" class="hidden mt-2 flex items-center gap-2 text-sm text-gray-600">
-                <span>📄 Current file:</span>
-                <a id="ce-ji-current-link" href="#" target="_blank" class="text-blue-600 underline"></a>
-                <button type="button" onclick="window.removeJoiningInstructions()" class="text-red-500 hover:text-red-700 text-xs ml-1">✕ Remove</button>
+              <!-- File upload panel -->
+              <div id="ce-ji-file-panel">
+                <div id="ce-ji-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-500 cursor-pointer hover:border-brass transition-colors">
+                  <span id="ce-ji-label">📎 Click to upload a file (PDF, DOCX, etc.)</span>
+                  <input id="ce-ji-file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.xlsx,.xls" class="hidden" />
+                </div>
+                <div id="ce-ji-current" class="hidden mt-2 flex items-center gap-2 text-sm text-gray-600">
+                  <span>📄 Current file:</span>
+                  <a id="ce-ji-current-link" href="#" target="_blank" class="text-blue-600 underline"></a>
+                  <button type="button" onclick="window.removeJoiningInstructions()" class="text-red-500 hover:text-red-700 text-xs ml-1">✕ Remove</button>
+                </div>
+              </div>
+              <!-- Link panel -->
+              <div id="ce-ji-link-panel" class="hidden">
+                <input id="ce-ji-url" type="url" placeholder="https://drive.google.com/… or any URL"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy" />
+                <p class="text-xs text-gray-400 mt-1">Google Drive, Dropbox, OneDrive, or any public link</p>
               </div>
             </div>
             <div class="sm:col-span-2">
